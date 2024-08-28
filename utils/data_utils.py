@@ -136,12 +136,12 @@ class data_utils:
                     ds_final['attri_lat'] = (('time', 'lat', 'lon'), lat_broadcasted.astype(np.float32))
                 elif var == 'TOD':
                     # Compute TOD (time of day) from ds.time
-                    tod_data = (ds_final.time.dt.hour + ds_final.time.dt.minute / 60.0)
+                    tod_data = (ds_final.time.dt.hour + ds_final.time.dt.minute / 60.0).values
                     tod_data = np.tile(tod_data[:, np.newaxis, np.newaxis], (1, ds_final.dims['lat'], ds_final.dims['lon']))
                     ds_final['TOD'] = (('time', 'lat', 'lon'), tod_data.astype(np.float32))
                 elif var == 'TOY':
                     # Compute TOY (time of year) from ds.time
-                    doy = ds_final.time.dt.dayofyear
+                    doy = ds_final.time.dt.dayofyear.values
                     toy_data = np.tile(doy[:, np.newaxis, np.newaxis], (1, ds_final.dims['lat'], ds_final.dims['lon']))
                     ds_final['TOY'] = (('time', 'lat', 'lon'), toy_data.astype(np.float32))
 
