@@ -77,7 +77,7 @@ class data_utils:
         self.v1_inputs_attribute = ['attri_lat',
                                      'TOD',
                                      'TOY']        
-        self.v1_outputs = ['Tdiff',
+        self.v1_outputs = ['Sdiff',
                            'Qdiff',
                            'Udiff',
                            'Vdiff']
