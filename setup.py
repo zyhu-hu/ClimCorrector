@@ -14,6 +14,7 @@ install_requires = [
     "netCDF4",
     "h5py",
     "tqdm",
+    'jupyterlab',
 ]
 
 setup(

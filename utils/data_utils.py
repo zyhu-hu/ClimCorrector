@@ -197,19 +197,19 @@ class data_utils:
             assert self.train_regexps is not None, 'regexps for train is not set.'
             assert self.train_stride_sample is not None, 'stride_sample for train is not set.'
             for regexp in self.train_regexps:
-                filelist = filelist + glob.glob(self.data_path + "*/" + regexp)
+                filelist = filelist + glob.glob(self.data_path + regexp)
             self.train_filelist = sorted(filelist)[start_idx:end_idx:self.train_stride_sample]
         elif data_split == 'val':
             assert self.val_regexps is not None, 'regexps for val is not set.'
             assert self.val_stride_sample is not None, 'stride_sample for val is not set.'
             for regexp in self.val_regexps:
-                filelist = filelist + glob.glob(self.data_path + "*/" + regexp)
+                filelist = filelist + glob.glob(self.data_path + regexp)
             self.val_filelist = sorted(filelist)[start_idx:end_idx:self.val_stride_sample]
         elif data_split == 'test':
             assert self.test_regexps is not None, 'regexps for test is not set.'
             assert self.test_stride_sample is not None, 'stride_sample for test is not set.'
             for regexp in self.test_regexps:
-                filelist = filelist + glob.glob(self.data_path + "*/" + regexp)
+                filelist = filelist + glob.glob(self.data_path + regexp)
             self.test_filelist = sorted(filelist)[start_idx:end_idx:self.test_stride_sample]
 
     def get_filelist(self, data_split):
