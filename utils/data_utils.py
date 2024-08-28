@@ -77,10 +77,10 @@ class data_utils:
         self.v1_inputs_attribute = ['attri_lat',
                                      'TOD',
                                      'TOY']        
-        self.v1_outputs = ['Sdiff',
-                           'Qdiff',
-                           'Udiff',
-                           'Vdiff']
+        self.v1_outputs = ['SDiff',
+                           'QDiff',
+                           'UDiff',
+                           'VDiff']
 
         self.var_lens = {#inputs
                         'T':self.num_levels,
