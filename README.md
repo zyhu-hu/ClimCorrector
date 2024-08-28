@@ -22,4 +22,4 @@ pip install .
 
 ## Create stacked training data from model outputs
 
-Follow the `notebooks/stacked_training_data.ipynb` notebook to create stacked training data from model outputs.
+Follow the `notebooks/create_dataset_demo.ipynb` notebook to create stacked training data from model outputs.
