@@ -2,7 +2,6 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import pickle
 import glob, os
 import re
 import netCDF4
@@ -11,7 +10,7 @@ import string
 import h5py
 from tqdm import tqdm
 from typing import Literal
-import torch
+# import torch
 
 class data_utils:
     def __init__(self,
@@ -257,53 +256,15 @@ class data_utils:
                 ds_target = ds_target.to_stacked_array(new_dim='mlvar', sample_dims=['batch'])
                 yield (ds_input.values, ds_target.values)
 
-        # if self.ml_backend == "tensorflow":
-
-        #     # Removed output_shapes and output_types, converting to output_signature as is
-        #     # recommended in the latest version of TensorFlow.
-        #     return self.tf.data.Dataset.from_generator(
-        #         gen, 
-        #         output_signature=(
-        #             self.tf.TensorSpec(shape=(None, self.input_feature_len), dtype=self.tf.float64),
-        #             self.tf.TensorSpec(shape=(None, self.target_feature_len), dtype=self.tf.float64)
-        #         )
-        #     )
-
-        # elif self.ml_backend == "pytorch":
-        #     if self.successful_backend_import:
-
-        class IterableTorchDataset(self.torch.utils.data.IterableDataset):
-            def __init__(this_self, data_generator, output_types, output_shapes):
+        class IterableNumpyDataset:
+            def __init__(this_self, data_generator, output_shapes):
                 this_self.data_generator = data_generator
-                this_self.output_types = output_types
                 this_self.output_shapes = output_shapes
 
             def __iter__(this_self):
                 for item in this_self.data_generator:
-
-                    input_array = self.torch.tensor(
-                        item[0], dtype=this_self.output_types[0]
-                    )
-                    target_array = self.torch.tensor(
-                        item[1], dtype=this_self.output_types[1]
-                    )
-
-                    # Assert final dimensions are correct.
-                    assert (
-                        input_array.shape[-1] == this_self.output_shapes[0][-1]
-                    )
-                    assert (
-                        target_array.shape[-1] == this_self.output_shapes[1][-1]
-                    )
-
-                    yield (input_array, target_array)
-
-            def as_numpy_iterator(this_self):
-                for item in this_self.data_generator:
-
-                    # Convert item to numpy array
-                    input_array = np.array(item[0])
-                    target_array = np.array(item[1])
+                    input_array = np.array(item[0], dtype=np.float32)
+                    target_array = np.array(item[1], dtype=np.float32)
 
                     # Assert final dimensions are correct.
                     assert input_array.shape[-1] == this_self.output_shapes[0][-1]
@@ -311,9 +272,19 @@ class data_utils:
 
                     yield (input_array, target_array)
 
-        dataset = IterableTorchDataset(
+            def as_numpy_iterator(this_self):
+                for item in this_self.data_generator:
+                    input_array = np.array(item[0], dtype=np.float32)
+                    target_array = np.array(item[1], dtype=np.float32)
+
+                    # Assert final dimensions are correct.
+                    assert input_array.shape[-1] == this_self.output_shapes[0][-1]
+                    assert target_array.shape[-1] == this_self.output_shapes[1][-1]
+
+                    yield (input_array, target_array)
+
+        dataset = IterableNumpyDataset(
             gen(),
-            (self.torch.float32, self.torch.float32),
             ((None, self.input_feature_len), (None, self.target_feature_len)),
         )
 

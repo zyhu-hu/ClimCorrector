@@ -4,7 +4,6 @@ import os
 from setuptools import find_packages, setup
 
 # Check environment variable for the backend choice
-ml_backend = os.getenv('ML_BACKEND', 'pytorch').lower()
 
 # Base requirements
 install_requires = [
@@ -16,14 +15,6 @@ install_requires = [
     "h5py",
     "tqdm",
 ]
-
-# Conditional requirements based on the backend choice
-if ml_backend == 'pytorch':
-    install_requires.append('torch')
-elif ml_backend == 'tensorflow':
-    install_requires.append('tensorflow')
-else:
-    raise ValueError(f"Unsupported ML_BACKEND value: {ml_backend}. Choose 'tensorflow' or 'pytorch'.")
 
 setup(
     name="climcorrector_utils",
