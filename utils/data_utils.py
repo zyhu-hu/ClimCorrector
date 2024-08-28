@@ -77,10 +77,10 @@ class data_utils:
         self.v1_inputs_attribute = ['attri_lat',
                                      'TOD',
                                      'TOY']        
-        self.v1_outputs = ['SDiff',
-                           'QDiff',
-                           'UDiff',
-                           'VDiff']
+        self.v1_outputs = ['SDIFF',
+                           'QDIFF',
+                           'UDIFF',
+                           'VDIFF']
 
         self.var_lens = {#inputs
                         'T':self.num_levels,
@@ -93,10 +93,10 @@ class data_utils:
                         'SHFLX':1,
                         'SNOWHLND':1,
                         #outputs
-                        'Tdiff':self.num_levels,
-                        'Qdiff':self.num_levels,
-                        'Udiff':self.num_levels,
-                        'Vdiff':self.num_levels,
+                        'SdIFF':self.num_levels,
+                        'QdIFF':self.num_levels,
+                        'UdIFF':self.num_levels,
+                        'VdIFF':self.num_levels,
                         }
                         
     def set_to_v1_vars(self):
@@ -132,17 +132,17 @@ class data_utils:
                 if var == 'attri_lat':
                     # Broadcast lat to have (time, lat, lon) dimensions
                     lat_data = ds['lat']
-                    lat_broadcasted = np.tile(lat_data, (ds_final.dims['time'], ds_final.dims['lon'], 1)).transpose(0, 2, 1)
+                    lat_broadcasted = np.tile(lat_data, (ds_final.sizes['time'], ds_final.sizes['lon'], 1)).transpose(0, 2, 1)
                     ds_final['attri_lat'] = (('time', 'lat', 'lon'), lat_broadcasted.astype(np.float32))
                 elif var == 'TOD':
                     # Compute TOD (time of day) from ds.time
                     tod_data = (ds_final.time.dt.hour + ds_final.time.dt.minute / 60.0).values
-                    tod_data = np.tile(tod_data[:, np.newaxis, np.newaxis], (1, ds_final.dims['lat'], ds_final.dims['lon']))
+                    tod_data = np.tile(tod_data[:, np.newaxis, np.newaxis], (1, ds_final.sizes['lat'], ds_final.sizes['lon']))
                     ds_final['TOD'] = (('time', 'lat', 'lon'), tod_data.astype(np.float32))
                 elif var == 'TOY':
                     # Compute TOY (time of year) from ds.time
                     doy = ds_final.time.dt.dayofyear.values
-                    toy_data = np.tile(doy[:, np.newaxis, np.newaxis], (1, ds_final.dims['lat'], ds_final.dims['lon']))
+                    toy_data = np.tile(doy[:, np.newaxis, np.newaxis], (1, ds_final.sizes['lat'], ds_final.sizes['lon']))
                     ds_final['TOY'] = (('time', 'lat', 'lon'), toy_data.astype(np.float32))
 
         return ds_final
