@@ -249,10 +249,10 @@ class data_utils:
 
                 # stack
                 # ds = ds.stack({'batch':{'sample','ncol'}})
-                ds_input = ds_input.stack({'batch':{'time', 'lat', 'lon'}})
+                ds_input = ds_input.stack({'batch':['time', 'lat', 'lon']})
                 ds_input = ds_input.to_stacked_array(new_dim='mlvar', sample_dims=['batch'])
                 # dso = dso.stack({'batch':{'sample','ncol'}})
-                ds_target = ds_target.stack({'batch':{'time', 'lat', 'lon'}})
+                ds_target = ds_target.stack({'batch':['time', 'lat', 'lon']})
                 ds_target = ds_target.to_stacked_array(new_dim='mlvar', sample_dims=['batch'])
                 yield (ds_input.values, ds_target.values)
 
