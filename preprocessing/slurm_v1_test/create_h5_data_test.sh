@@ -15,8 +15,8 @@
 #SBATCH --no-requeue
 
 
-%cd /n/home00/zeyuanhu/ClimCorrector
-mamba activate /n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/mamba_env/climcorr_torch
+cd /n/home00/zeyuanhu/ClimCorrector
+conda activate /n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/mamba_env/climcorr_torch
 
 python preprocessing/create_h5_data_v1.py \
     'conv_replay_amip_2iter1.cam.h1.1980-*.nc' \
