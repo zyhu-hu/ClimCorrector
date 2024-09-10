@@ -36,4 +36,4 @@ if __name__ == "__main__":
     parser.add_argument('--stride_sample', type=int, default=1, help='Temporal subsampling rate.')
     args = parser.parse_args()
 
-    main(args.regexps, args.save_path, args.start_idx)
+    main(args.regexps, args.data_path, args.save_path, args.start_idx, args.stride_sample)
