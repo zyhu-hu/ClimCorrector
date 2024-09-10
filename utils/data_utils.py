@@ -123,7 +123,7 @@ class data_utils:
 
         # Handle file_vars_standard
         if file_vars_standard is not None:
-            ds_standard = ds[file_vars_standard].isel(time=[0, 3])
+            ds_standard = ds[file_vars_standard].isel(time=[1, 4])
             ds_final = xr.merge([ds_final, ds_standard])
 
         # Handle file_vars_attribute

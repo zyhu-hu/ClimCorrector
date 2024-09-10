@@ -10,7 +10,7 @@
 #SBATCH --mail-type=END
 #SBATCH --mail-user=zeyuan_hu@fas.harvard.edu
 #SBATCH -J create_data # job name
-#SBATCH -t 240                         # job time in minutes
+#SBATCH -t 120                         # job time in minutes
 #SBATCH --mem-per-cpu=180000 #MB
 #SBATCH --no-requeue
 

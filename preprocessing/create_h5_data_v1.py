@@ -22,7 +22,9 @@ def main(regexps, data_path, save_path, start_idx, stride_sample):
     data.set_stride_sample(data_split = 'train', stride_sample = stride_sample)
     # create list of files to extract data from
     data.set_filelist(data_split = 'train', start_idx=start_idx)
-    print(data.get_filelist('train'))
+    print('files to be processed (top 10 and last 10 are printed out below):')
+    print(data.get_filelist('train')[:10])
+    print(data.get_filelist('train')[-10:])
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     data.save_data(data_split='train', save_path=save_path)
