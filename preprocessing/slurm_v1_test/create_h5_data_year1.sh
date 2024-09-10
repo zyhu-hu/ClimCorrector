@@ -1,7 +1,7 @@
 #!/bin/bash
   
 #SBATCH -n 1 # TODO number of cpu
-#SBATCH -o out
+#SBATCH -o out-%j
 #SBATCH -e eo-%j
 #SBATCH -p test
 #SBATCH --contiguous
