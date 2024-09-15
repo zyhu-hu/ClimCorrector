@@ -112,7 +112,7 @@ def main(cfg: DictConfig) -> float:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model = LSTM8th(
-        input_size=input_size_nn,
+        input_size=input_size_nn//26 + input_size_nn%26,
         seq_len=cfg.lstm.seq_len,
         hidden_size=cfg.lstm.hidden_size,
         output_size=cfg.lstm.output_size,
