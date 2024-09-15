@@ -22,9 +22,15 @@ pip install .
 
 ## Create stacked training data from model outputs
 
-Follow the `notebooks/create_dataset_demo.ipynb` notebook to create stacked training data from model outputs.
+Follow the `notebooks/create_dataset_demo.ipynb` notebook to create stacked training data from model outputs. I also provide `preprocessing/create_h5_data_v1.py` and `preprocessing/create_h5_data_v1_val.py` to create training and validation data from slurm jobs. `preprocessing/slurm_v1_test/` contains some slurm scripts to run the jobs to extract stacked input and output files with v1 input/output option (see `utils/data_utils.py` for definition of v1 option).
+
+## Generate normalization files
+
+Under development. `notebooks/calculate_normalization_factors.ipynb` calculated the mean/std/min/max for a subsampled data (select every 7 files from the 10 year data). The normalization factors are saved in `preprocessing/normalization/`.
 
 ## Train the model
+
+
 
 ### set up a training virtual environment
 

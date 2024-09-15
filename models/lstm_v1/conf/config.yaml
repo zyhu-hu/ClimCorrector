@@ -1,0 +1,70 @@
+# Paths to datasets and normalizations
+climcorr_path: '/n/home00/zeyuanhu/ClimCorrector/'
+train_dataset_path: '/n/holyscratch01/kuang_lab/zeyuanhu/scratch/climcorr_preprocessing/v1_test1/'
+val_dataset_path: '/n/holyscratch01/kuang_lab/zeyuanhu/scratch/climcorr_preprocessing/v1_test1/'
+input_mean: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/inputs/input_mean_v1_test1_10year_sub7.npy'
+input_std: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/inputs/input_std_v1_test1_10year_sub7.npy'
+target_mean: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/outputs/target_mean_v1_test1_10year_sub7.npy'
+target_std: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/output/target_std_v1_test1_10year_sub7.npy'
+restart_path: ''
+save_path: '/n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/climcorr/saved_models/'
+
+
+# dataloader configuration
+variable_subsets: 'v1'
+input_clip: False
+target_clip: True
+target_clip_value: 100
+num_workers: 16
+
+# training parameters
+loss: 'huber'
+optimizer: 'adam'
+batch_size: 1024
+epochs: 1
+learning_rate: 0.0001
+weight_decay: 0.001  # only used if optimizer == "adamw"
+dropout: 0.0
+clip_grad: False
+clip_grad_norm: 6.0
+
+# setup the scheduler with step, reducedonplateau, cosine, cosine_warmup
+scheduler_name: 'cosine_warmup'
+scheduler:
+   step:
+      step_size: 2
+      gamma: 0.3162278
+   plateau:
+      patience: 2
+      factor: 0.1
+   cosine:
+      T_max: 2
+      eta_min: 0.00001
+   cosine_warmup:
+      T_0: 5
+      T_mult: 1
+      eta_min: 1.5e-6
+
+
+# option of saving model checkpoints
+save_top_ckpts: 5
+top_ckpt_mode: 'min'
+
+# option of early stopping
+early_stop_step: -1
+
+# logging
+mini_batch_log_freq: 100
+logger: 'wandb'
+wandb:
+   project: "v5_unet"
+
+# architecture configuration
+lstm:
+  seq_len: 26                # Sequence length
+  hidden_size: 256           # Size of hidden layers
+  output_size: 4             # Output size
+  num_layers: 6              # Number of LSTM layers
+  hidden_layers: [256, 512]  # List of hidden layer sizes (optional in LSTM)
+  dropout: 0.1               # Dropout rate
+  bidirectional: true        # Whether to use bidirectional LSTM
