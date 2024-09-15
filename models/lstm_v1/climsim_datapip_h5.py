@@ -82,7 +82,8 @@ class climsim_dataset_h5(Dataset):
         tod_cos = np.cos(tod/24.*2*np.pi)
         tod_sin = np.sin(tod/24.*2*np.pi)
         toy_cos = np.cos(toy/365.*2*np.pi)
-        x = np.concatenate((x[:-3], [lat_norm, tod_cos, tod_sin, toy_cos]))
+        toy_sin = np.sin(toy/365.*2*np.pi)
+        x = np.concatenate((x[:-3], [lat_norm, tod_cos, tod_sin, toy_cos, toy_sin]))
         if self.target_clip:
             y = np.clip(y, -self.target_clip_value, self.target_clip_value)
         

@@ -32,10 +32,12 @@ class LSTM8th(modulus.Module):
                  num_layers=1,
                  bidirectional=False,
                  dropout=.1,
-                 hidden_layers=[128, 256]):
+                 hidden_layers=[128, 256],
+                 input_profile_vars=4):
 
         super().__init__(meta=LSTM8thMetaData())
         self.input_size = input_size
+        self.input_profile_vars = input_profile_vars # t,q,u,v as input
         self.seq_len = seq_len
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -73,13 +75,10 @@ class LSTM8th(modulus.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-
-        x = x.clone()
-        x[:,-8:-3] = x[:,-8:-3].clone().zero_()
-        x_profile = x[:,:(self.input_size//26)*26]
-        x_scalar = x[:,(self.input_size//26)*26:]
+        x_profile = x[:,:self.input_profile_vars*26]
+        x_scalar = x[:,self.input_profile_vars*26:]
         
-        x_profile = x_profile.reshape(-1, self.input_size//26, 26)
+        x_profile = x_profile.reshape(-1, self.input_profile_vars, 26)
         x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, 26)
         x = torch.cat((x_profile, x_scalar), dim=1)
         x = x.permute(0, 2, 1)
