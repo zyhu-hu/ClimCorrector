@@ -117,7 +117,7 @@ def main(cfg: DictConfig) -> float:
         hidden_size=cfg.lstm.hidden_size,
         output_size=cfg.lstm.output_size,
         num_layers=cfg.lstm.num_layers,
-        hidden_layers=cfg.lstm.hidden_layers,
+        hidden_layers=list(cfg.lstm.hidden_layers),
         dropout=cfg.lstm.dropout,
         bidirectional=cfg.lstm.bidirectional,
     ).to(device)
