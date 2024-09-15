@@ -18,6 +18,7 @@ target_clip_value: 100
 num_workers: 16
 
 # training parameters
+expname: 'lstm_v1_test'
 loss: 'huber'
 optimizer: 'adam'
 batch_size: 1024

@@ -19,8 +19,9 @@ NUM_CPUS=16
 
 
 cmd="python train_lstm8th.py --config-name=config \
-        data_path='/n/holyscratch01/kuang_lab/zeyuanhu/scratch/climcorr_preprocessing/v1_test1/' \
-        expname='/n/holyscratch01/kuang_lab/zeyuanhu/scratch/climcorr_preprocessing/v1_test1/' \
+        train_dataset_path='/n/holyscratch01/kuang_lab/zeyuanhu/scratch/climcorr_preprocessing/v1_test1/' \
+        val_dataset_path='/n/holyscratch01/kuang_lab/zeyuanhu/scratch/climcorr_preprocessing/v1_test1/' \
+        expname='lstm_v1_test' \
         batch_size=1024 \
         num_workers=8 \
         epochs=16 \
