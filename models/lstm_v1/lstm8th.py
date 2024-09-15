@@ -75,20 +75,15 @@ class LSTM8th(modulus.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        print('x:', x.shape)
         x_profile = x[:,:self.input_profile_vars*26]
         x_scalar = x[:,self.input_profile_vars*26:]
-        print('x_profile:', x_profile.shape)
-        print('x_scalar:', x_scalar.shape)
         x_profile = x_profile.reshape(-1, self.input_profile_vars, 26)
         x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, 26)
         x = torch.cat((x_profile, x_scalar), dim=1)
-        print('x at 2:', x.shape)
         x = x.permute(0, 2, 1)
         
         # batch_size = x.size(0)
         outputs, hidden = self.rnn(x)
-        print('outputs:', outputs.shape)
         outputs = outputs.permute(1, 0, 2)  # (seq_len, batch_size, hidden_size)
         attn_output, _ = self.attention(outputs, outputs, outputs)
         attn_output = attn_output.permute(1, 0, 2)  # (batch_size, seq_len, hidden_size)
@@ -98,7 +93,6 @@ class LSTM8th(modulus.Module):
             x = self.activation_fn(hidden_layer(x))
             x = self.dropout(x)
         x = self.output_layer(x)
-        print('x at 3:', x.shape)
         # (-1,26,4) -> (-1,104)
         x = x.permute(0,2,1).reshape(-1,104)
         return x
