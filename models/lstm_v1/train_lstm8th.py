@@ -363,10 +363,10 @@ def main(cfg: DictConfig) -> float:
         save_file_torch = os.path.join(save_path, 'model.pt')
         scripted_model.save(save_file_torch)
         # copy input and output normalizations files
-        shutil.copy(cfg.input_mean, save_path)
-        shutil.copy(cfg.input_std, save_path)
-        shutil.copy(cfg.target_mean, save_path)
-        shutil.copy(cfg.target_std, save_path)
+        shutil.copy(cfg.input_mean, save_path+'/input_mean.npy')
+        shutil.copy(cfg.input_std, save_path+'/input_std.npy')
+        shutil.copy(cfg.target_mean, save_path+'/target_mean.npy')
+        shutil.copy(cfg.target_std, save_path+'/target_std.npy')
         
         logger0.info("saved input/output normalizations and model to: " + save_path)
 
