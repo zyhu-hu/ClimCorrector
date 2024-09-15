@@ -99,6 +99,6 @@ class LSTM8th(modulus.Module):
             x = self.dropout(x)
         x = self.output_layer(x)
         print('x at 3:', x.shape)
-        # (-1,26,4) -> (-1,102)
-        x = x.permute(0,2,1).reshape(-1,102)
+        # (-1,26,4) -> (-1,104)
+        x = x.permute(0,2,1).reshape(-1,104)
         return x
