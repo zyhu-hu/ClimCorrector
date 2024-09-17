@@ -19,8 +19,8 @@ from utils.data_utils import *
 from climsim_datapip_h5_preload import climsim_dataset_h5_preload
 from climsim_datapip_h5 import climsim_dataset_h5
 
-from lstm8th import LSTM8th
-import lstm8th as lstm8th
+from mlp import MLP
+import mlp as mlp
 import hydra
 from torch.nn.parallel import DistributedDataParallel
 from modulus.distributed import DistributedManager
@@ -111,15 +111,21 @@ def main(cfg: DictConfig) -> float:
     # create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = LSTM8th(
-        input_size=input_size_nn//26 + input_size_nn%26,
-        seq_len=cfg.lstm.seq_len,
-        hidden_size=cfg.lstm.hidden_size,
-        output_size=cfg.lstm.output_size,
-        num_layers=cfg.lstm.num_layers,
-        hidden_layers=list(cfg.lstm.hidden_layers),
-        dropout=cfg.lstm.dropout,
-        bidirectional=cfg.lstm.bidirectional,
+    # model = LSTM8th(
+    #     input_size=input_size_nn//26 + input_size_nn%26,
+    #     seq_len=cfg.lstm.seq_len,
+    #     hidden_size=cfg.lstm.hidden_size,
+    #     output_size=cfg.lstm.output_size,
+    #     num_layers=cfg.lstm.num_layers,
+    #     hidden_layers=list(cfg.lstm.hidden_layers),
+    #     dropout=cfg.lstm.dropout,
+    #     bidirectional=cfg.lstm.bidirectional,
+    # ).to(device)
+    model = MLP(
+        in_dims=input_size_nn,
+        out_dims=output_size_nn,
+        hidden_dims=cfg.mlp.hidden_dims,
+        layers=cfg.mlp.layers,
     ).to(device)
 
     if len(cfg.restart_path) > 0:
