@@ -111,16 +111,6 @@ def main(cfg: DictConfig) -> float:
     # create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # model = LSTM8th(
-    #     input_size=input_size_nn//26 + input_size_nn%26,
-    #     seq_len=cfg.lstm.seq_len,
-    #     hidden_size=cfg.lstm.hidden_size,
-    #     output_size=cfg.lstm.output_size,
-    #     num_layers=cfg.lstm.num_layers,
-    #     hidden_layers=list(cfg.lstm.hidden_layers),
-    #     dropout=cfg.lstm.dropout,
-    #     bidirectional=cfg.lstm.bidirectional,
-    # ).to(device)
     model = MLP(
         in_dims=input_size_nn,
         out_dims=output_size_nn,
@@ -361,7 +351,7 @@ def main(cfg: DictConfig) -> float:
         save_file = os.path.join(save_path, 'model.mdlus')
         model.save(save_file)
         # convert the model to torchscript
-        lstm8th.device = "cpu"
+        mlp.device = "cpu"
         device = torch.device("cpu")
         model_inf = modulus.Module.from_checkpoint(save_file).to(device)
         scripted_model = torch.jit.script(model_inf)
