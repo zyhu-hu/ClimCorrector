@@ -277,10 +277,10 @@ def main(cfg: DictConfig) -> float:
                 loss = criterion(output, target)
                 loss.backward()
 
-                # for debug only, check if any parameter has None grad/not used in the backward pass
-                for name, param in model.named_parameters():
-                    if param.grad is None:
-                        print(name)
+                # # for debug only, check if any parameter has None grad/not used in the backward pass
+                # for name, param in model.named_parameters():
+                #     if param.grad is None:
+                #         print(name)
 
                 #loss = training_step(model, data_input, target)
 

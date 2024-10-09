@@ -262,10 +262,7 @@ class ClimsimUnet(modulus.Module):
                 self.dec_aux_conv[f"{res}_aux_conv"] = Conv1d(
                     in_channels=cout, out_channels=self.out_channels, kernel=3, **init_zero
                 )
-
-        # create a 385x8 trainable weight embedding for the input
-        self.emb_loc = torch.nn.Parameter(torch.randn(385, 8), requires_grad=True)
-                       
+                
     def forward(self, x):
         '''
         x: (batch, num_vars_profile*levels+num_vars_scalar)
@@ -302,13 +299,10 @@ class ClimsimUnet(modulus.Module):
                 x = block(x)
                 skips.append(x)
 
-        new_skips = []
-        # for x_tmp, conv_tmp in zip(skips, self.skip_conv_layer):
-        #     x_tmp = conv_tmp(x_tmp)
+        # new_skips = []
+        # for idx, conv_tmp in enumerate(self.skip_conv_layer):
+        #     x_tmp = conv_tmp(skips[idx])
         #     new_skips.append(x_tmp)
-        for idx, conv_tmp in enumerate(self.skip_conv_layer):
-            x_tmp = conv_tmp(skips[idx])
-            new_skips.append(x_tmp)
 
         aux = None
         tmp = None
@@ -318,7 +312,8 @@ class ClimsimUnet(modulus.Module):
             if x.shape[1] != block.in_channels:
                 # skip_ind = len(skips) - 1
                 # skip_conv = self.skip_conv_layer[skip_ind]
-                x = torch.cat([x, new_skips.pop()], dim=1)
+                # x = torch.cat([x, new_skips.pop()], dim=1)
+                x = torch.cat([x, skips.pop()], dim=1)
                 # tmp1 = new_skips.pop()
                 # print('shape of x and tmp1', x.shape, tmp1.shape)
                 # x = torch.cat([x, tmp1], dim=1)
