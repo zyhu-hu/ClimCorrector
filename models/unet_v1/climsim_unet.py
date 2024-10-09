@@ -109,7 +109,7 @@ class ClimsimUnet(modulus.Module):
         self.input_padding = (seq_resolution-n_model_levels,0)
 
         self.loc_embedding = loc_embedding
-
+        self.skip_conv = skip_conv
 
 
 
