@@ -273,9 +273,9 @@ class ClimsimUnet(modulus.Module):
         # x_scalar: (batch, num_vars_scalar)
         '''
 
-        x_profile = x[:,:self.input_profile_vars*26]
-        x_scalar = x[:,self.input_profile_vars*26:]
-        x_profile = x_profile.reshape(-1, self.input_profile_vars, 26)
+        x_profile = x[:,:self.num_vars_profile*26]
+        x_scalar = x[:,self.num_vars_profile*26:]
+        x_profile = x_profile.reshape(-1, self.num_vars_profile, 26)
         x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, 26)
         x = torch.cat((x_profile, x_scalar), dim=1) # (batch, num_vars_profile+num_vars_scalar, levels)
         
