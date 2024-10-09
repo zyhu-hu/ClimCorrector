@@ -318,7 +318,10 @@ class ClimsimUnet(modulus.Module):
             if x.shape[1] != block.in_channels:
                 # skip_ind = len(skips) - 1
                 # skip_conv = self.skip_conv_layer[skip_ind]
-                x = torch.cat([x, new_skips.pop()], dim=1)
+                # x = torch.cat([x, new_skips.pop()], dim=1)
+                tmp1 = new_skips.pop()
+                print('shape of x and tmp1', x.shape, tmp1.shape)
+                x = torch.cat([x, tmp1], dim=1)
             # x = block(x, emb)
             x = block(x)
             # else:
