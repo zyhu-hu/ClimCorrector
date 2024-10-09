@@ -68,3 +68,14 @@ lstm:
   hidden_layers: [256, 512]  # List of hidden layer sizes (optional in LSTM)
   dropout: 0.1               # Dropout rate
   bidirectional: true        # Whether to use bidirectional LSTM
+
+mlp:
+   hidden_dims: 256
+   layers: 7
+
+unet:
+   model_channels: 128
+   num_blocks: 2
+   attn_resolutions: [0]
+   dropout: 0
+   

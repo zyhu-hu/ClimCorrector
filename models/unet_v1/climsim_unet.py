@@ -70,7 +70,8 @@ class ClimsimUnet(modulus.Module):
         self.num_vars_scalar_out = num_vars_scalar_out
         self.model_channels = model_channels
 
-        self.in_channels = num_vars_profile + num_vars_scalar + 7 # +(8-1)=7 for the location embedding
+        # self.in_channels = num_vars_profile + num_vars_scalar + 7 # +(8-1)=7 for the location embedding
+        self.in_channels = num_vars_profile + num_vars_scalar # no positional embedding
         self.out_channels = num_vars_profile_out + num_vars_scalar_out
         # print('1: out_channels', self.out_channels)
 
@@ -272,33 +273,13 @@ class ClimsimUnet(modulus.Module):
         # x_scalar: (batch, num_vars_scalar)
         '''
 
-        # split x into x_profile and x_scalar
-        x_profile = x[:,:self.num_vars_profile*self.n_model_levels]
-        x_scalar = x[:,self.num_vars_profile*self.n_model_levels:-1]
-        x_loc = x[:,-1] # location index
+        x_profile = x[:,:self.input_profile_vars*26]
+        x_scalar = x[:,self.input_profile_vars*26:]
+        x_profile = x_profile.reshape(-1, self.input_profile_vars, 26)
+        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, 26)
+        x = torch.cat((x_profile, x_scalar), dim=1) # (batch, num_vars_profile+num_vars_scalar, levels)
+        
 
-        # right now x_loc is only 1-384, use 0 to represent not using position embedding
-        if not self.loc_embedding:
-            x_loc[:] = 0.0*x_loc[:]
-        #convert x_loc to embedding, first use one-hot encoding to convert x_loc to (batch, 385)
-        # convert x_loc to one-hot encoding
-        x_loc = torch.nn.functional.one_hot(x_loc.to(torch.int64), num_classes=385)
-        # convert x_loc from int to float
-        x_loc = x_loc.to(torch.float32)
-        # convert x_loc to embedding
-        x_loc = torch.matmul(x_loc, self.emb_loc) # (batch, 8)
-
-        # print(x_profile.shape, x_scalar.shape, x_loc.shape)
-
-        # reshape x_profile to (batch, num_vars_profile, levels)
-        x_profile = x_profile.reshape(-1, self.num_vars_profile, self.n_model_levels)
-        # broadcast x_scalar to (batch, num_vars_scalar, levels)
-        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, self.n_model_levels)
-
-
-
-        #concatenate x_profile, x_scalar, x_loc to (batch, num_vars_profile+num_vars_scalar+8, levels)
-        x = torch.cat((x_profile, x_scalar, x_loc.unsqueeze(2).expand(-1, -1, self.n_model_levels)), dim=1)
         # print('2:', x.shape)
         # x = torch.cat((x_profile, x_scalar), dim=1)
         
@@ -370,11 +351,12 @@ class ClimsimUnet(modulus.Module):
         y_profile = y_profile.reshape(-1, self.num_vars_profile_out*self.n_model_levels)
 
         #average y_scalar for the lev dimension to (batch, num_vars_scalar_out)
-        y_scalar = y_scalar.mean(dim=2)
+        # y_scalar = y_scalar.mean(dim=2)
         # print('7.5:', y_profile.shape, y_scalar.shape)
 
         #concatenate y_profile and y_scalar to (batch, num_vars_profile_out*levels+num_vars_scalar_out)
-        y = torch.cat((y_profile, y_scalar), dim=1)
+        # y = torch.cat((y_profile, y_scalar), dim=1)
+        y = y_profile
 
 
         return y

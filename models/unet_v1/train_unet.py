@@ -19,8 +19,12 @@ from utils.data_utils import *
 from climsim_datapip_h5_preload import climsim_dataset_h5_preload
 from climsim_datapip_h5 import climsim_dataset_h5
 
-from lstm8th import LSTM8th
-import lstm8th as lstm8th
+# from lstm8th import LSTM8th
+# import lstm8th as lstm8th
+
+from climsim_unet import ClimsimUnet
+import climsim_unet as climsim_unet
+
 import hydra
 from torch.nn.parallel import DistributedDataParallel
 from modulus.distributed import DistributedManager
@@ -111,16 +115,28 @@ def main(cfg: DictConfig) -> float:
     # create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = LSTM8th(
-        input_size=input_size_nn//26 + input_size_nn%26,
-        seq_len=cfg.lstm.seq_len,
-        hidden_size=cfg.lstm.hidden_size,
-        output_size=cfg.lstm.output_size,
-        num_layers=cfg.lstm.num_layers,
-        hidden_layers=list(cfg.lstm.hidden_layers),
-        dropout=cfg.lstm.dropout,
-        bidirectional=cfg.lstm.bidirectional,
-    ).to(device)
+    # model = LSTM8th(
+    #     input_size=input_size_nn//26 + input_size_nn%26,
+    #     seq_len=cfg.lstm.seq_len,
+    #     hidden_size=cfg.lstm.hidden_size,
+    #     output_size=cfg.lstm.output_size,
+    #     num_layers=cfg.lstm.num_layers,
+    #     hidden_layers=list(cfg.lstm.hidden_layers),
+    #     dropout=cfg.lstm.dropout,
+    #     bidirectional=cfg.lstm.bidirectional,
+    # ).to(device)
+    model = ClimsimUnet(
+        num_vars_profile = input_size_nn//26,
+        num_vars_scalar = input_size_nn%26,
+        num_vars_profile_out = output_size_nn//26,
+        num_vars_scalar_out = output_size_nn%26,
+        seq_resolution = 26,
+        model_channels = cfg.unet.model_channels,
+        channel_mult = [1, 2, 2, 2],
+        num_blocks = cfg.unet.num_blocks,
+        attn_resolutions = cfg.unet.attn_resolutions,
+        dropout = cfg.unet.dropout
+    ).to(dist.device)
 
     if len(cfg.restart_path) > 0:
         print("Restarting from checkpoint: " + cfg.restart_path)
