@@ -378,7 +378,7 @@ def main(cfg: DictConfig) -> float:
         save_file = os.path.join(save_path, 'model.mdlus')
         model.save(save_file)
         # convert the model to torchscript
-        lstm8th.device = "cpu"
+        climsim_unet.device = "cpu"
         device = torch.device("cpu")
         model_inf = modulus.Module.from_checkpoint(save_file).to(device)
         scripted_model = torch.jit.script(model_inf)
