@@ -77,5 +77,4 @@ unet:
    model_channels: 128
    num_blocks: 2
    attn_resolutions: [0]
-   dropout: 0
-   
+   dropout: 0.0
