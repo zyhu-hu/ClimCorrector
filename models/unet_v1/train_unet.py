@@ -135,7 +135,7 @@ def main(cfg: DictConfig) -> float:
         model_channels = cfg.unet.model_channels,
         channel_mult = [1, 2, 2, 2],
         num_blocks = cfg.unet.num_blocks,
-        attn_resolutions = cfg.unet.attn_resolutions,
+        attn_resolutions = [i for i in cfg.unet.attn_resolutions],
         dropout = cfg.unet.dropout
     ).to(dist.device)
 
