@@ -267,7 +267,7 @@ def main(cfg: DictConfig) -> float:
                 # NVTX annotation for each batch processing in training
                 torch.cuda.nvtx.range_push(f"Training Step {current_step+1}")
 
-                data_input, target = data_input.to(device), target.to(device)
+                data_input, target = data_input.to(device, non_blocking=True), target.to(device, non_blocking=True)
                 optimizer.zero_grad()
                 output = model(data_input)
                 loss = criterion(output, target)
@@ -317,7 +317,7 @@ def main(cfg: DictConfig) -> float:
                 
                 torch.cuda.nvtx.range_push(f"Validation Step {current_step+1}")
 
-                data_input, target = data_input.to(device), target.to(device)
+                data_input, target = data_input.to(device, non_blocking=True), target.to(device, non_blocking=True)
 
                 output = eval_step_forward(model, data_input)
                 loss = criterion(output, target)
