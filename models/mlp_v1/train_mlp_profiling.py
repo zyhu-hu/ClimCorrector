@@ -297,7 +297,7 @@ def main(cfg: DictConfig) -> float:
             val_loss = 0.0
             num_samples_processed = 0
             # val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]')
-            # current_step = 0
+            current_step = 0
             # for data_input, target in val_loop:
             #     if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
             #         break
