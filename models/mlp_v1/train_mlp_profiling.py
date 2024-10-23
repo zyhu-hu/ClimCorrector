@@ -242,7 +242,7 @@ def main(cfg: DictConfig) -> float:
             train_sampler.set_epoch(epoch)
         
         # NVTX annotation for the entire training phase
-        nvtx.range_push(f"Epoch {epoch+1} Training")
+        torch.cuda.nvtx.range_push(f"Epoch {epoch+1} Training")
 
         with LaunchLogger("train", epoch=epoch, mini_batch_log_freq=cfg.mini_batch_log_freq) as launchlog:
             model.train()
@@ -256,7 +256,7 @@ def main(cfg: DictConfig) -> float:
                     break
 
                 # NVTX annotation for each batch processing in training
-                nvtx.range_push(f"Training Step {current_step+1}")
+                torch.cuda.nvtx.range_push(f"Training Step {current_step+1}")
 
                 data_input, target = data_input.to(device), target.to(device)
                 optimizer.zero_grad()
@@ -280,10 +280,10 @@ def main(cfg: DictConfig) -> float:
                 train_loop.set_postfix(loss=loss.item())
                 current_step += 1
 
-                nvtx.range_pop()  # End of Training Step
+                torch.cuda.nvtx.range_pop()  # End of Training Step
             
             # NVTX annotation for the evaluation phase
-            nvtx.range_push(f"Epoch {epoch+1} Validation")
+            torch.cuda.nvtx.range_push(f"Epoch {epoch+1} Validation")
             model.eval()
             val_loss = 0.0
             num_samples_processed = 0
@@ -305,7 +305,7 @@ def main(cfg: DictConfig) -> float:
                 current_step += 1
                 # del data_input, target, output
 
-            nvtx.range_pop()  # End of Validation phase
+            torch.cuda.nvtx.range_pop()  # End of Validation phase
                     
             
             # if dist.rank == 0:
@@ -356,7 +356,7 @@ def main(cfg: DictConfig) -> float:
             if dist.world_size > 1:
                 torch.distributed.barrier()
 
-        nvtx.range_pop()  # End of Training Epoch
+        torch.cuda.nvtx.range_pop()  # End of Training Epoch
 
     if dist.rank == 0:
         logger0.info("Start recovering the model from the top checkpoint to do torchscript conversion")         
