@@ -251,7 +251,14 @@ def main(cfg: DictConfig) -> float:
             # Wrap train_loader with tqdm for a progress bar
             train_loop = tqdm(train_loader, desc=f'Epoch {epoch+1}')
             current_step = 0
-            for iteration, (data_input, target) in enumerate(train_loop):
+            # for iteration, (data_input, target) in enumerate(train_loop):
+            for iteration in range(len(train_loader)):
+                # Use NVTX range for data loading
+
+                torch.cuda.nvtx.range_push(f"Data Loading Iteration {iteration+1}")
+                data_input, target = next(train_loop)  # Get the next batch
+                torch.cuda.nvtx.range_pop() # End of Data Loading
+
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
 
