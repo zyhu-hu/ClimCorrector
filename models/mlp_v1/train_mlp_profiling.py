@@ -251,12 +251,14 @@ def main(cfg: DictConfig) -> float:
             # Wrap train_loader with tqdm for a progress bar
             # train_loop = tqdm(train_loader, desc=f'Epoch {epoch+1}')
             current_step = 0
+            # Create an iterator for train_loader
+            train_loader_iter = iter(train_loader)
             # for iteration, (data_input, target) in enumerate(train_loop):
             for iteration in range(len(train_loader)):
                 # Use NVTX range for data loading
 
                 torch.cuda.nvtx.range_push(f"Data Loading Iteration {iteration+1}")
-                data_input, target = next(train_loader)  # Get the next batch
+                data_input, target = next(train_loader_iter)  # Get the next batch
                 torch.cuda.nvtx.range_pop() # End of Data Loading
 
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
@@ -283,8 +285,8 @@ def main(cfg: DictConfig) -> float:
                 launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy(), "lr": optimizer.param_groups[0]["lr"], "total_norm": total_norm.item()})
 
                 # Update the progress bar description with the current loss
-                train_loop.set_description(f'Epoch {epoch+1}')
-                train_loop.set_postfix(loss=loss.item())
+                # train_loop.set_description(f'Epoch {epoch+1}')
+                # train_loop.set_postfix(loss=loss.item())
                 current_step += 1
 
                 torch.cuda.nvtx.range_pop()  # End of Training Step
@@ -294,11 +296,27 @@ def main(cfg: DictConfig) -> float:
             model.eval()
             val_loss = 0.0
             num_samples_processed = 0
-            val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]')
-            current_step = 0
-            for data_input, target in val_loop:
+            # val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]')
+            # current_step = 0
+            # for data_input, target in val_loop:
+            #     if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
+            #         break
+            #     data_input, target = data_input.to(device), target.to(device)
+
+            val_loader_iter = iter(val_loader)
+            # for iteration, (data_input, target) in enumerate(train_loop):
+            for iteration in range(len(val_loader)):
+                # Use NVTX range for data loading
+
+                torch.cuda.nvtx.range_push(f"Data Loading val Iteration {iteration+1}")
+                data_input, target = next(val_loader_iter)  # Get the next batch
+                torch.cuda.nvtx.range_pop() # End of Data Loading
+
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
-                    break
+                     break
+                
+                torch.cuda.nvtx.range_push(f"Validation Step {current_step+1}")
+
                 data_input, target = data_input.to(device), target.to(device)
 
                 output = eval_step_forward(model, data_input)
@@ -308,8 +326,9 @@ def main(cfg: DictConfig) -> float:
 
                 # Calculate and update the current average loss
                 current_val_loss_avg = val_loss / num_samples_processed
-                val_loop.set_postfix(loss=current_val_loss_avg)
+                # val_loop.set_postfix(loss=current_val_loss_avg)
                 current_step += 1
+                torch.cuda.nvtx.range_pop()
                 # del data_input, target, output
 
             torch.cuda.nvtx.range_pop()  # End of Validation phase
