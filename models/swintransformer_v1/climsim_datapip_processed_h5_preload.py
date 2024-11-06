@@ -35,10 +35,6 @@ class climsim_dataset_processed_h5_preload(Dataset):
         x = self.input_file['data'][idx]
         y = self.target_file['data'][idx]
         
-        lat, tod,toy = x[-3:]
-        x = (x - self.input_mean) / self.input_std
-        y = (y - self.target_mean) / self.target_std
-        
         # Convert numpy arrays to torch tensors with float32 dtype
         x = torch.from_numpy(x).to(torch.float32)
         y = torch.from_numpy(y).to(torch.float32)
