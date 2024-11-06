@@ -32,7 +32,7 @@ from typing import Any, List, Optional, Tuple, Type, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from timm.layers import DropPath, Mlp, _assert, to_2tuple
+from timm.models.layers import DropPath, Mlp, _assert, to_2tuple
 from torch.utils.checkpoint import checkpoint
 
 from neural_transport.models.regulargrid import RegularGridModel
