@@ -891,6 +891,9 @@ class SwinTransformerV2CrModulus(modulus.Module):
             self.pos_embed = nn.Parameter(
                 torch.randn(1, embed_dim, patch_grid_size[0], patch_grid_size[1]) * 0.02
             )
+        else:
+            self.pos_embed = None
+        
 
     def forward_features(self, x: torch.Tensor) -> torch.Tensor:
         x = self.patch_embed(x)
