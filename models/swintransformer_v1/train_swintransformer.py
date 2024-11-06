@@ -258,6 +258,9 @@ def main(cfg: DictConfig) -> float:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
                 data_input, target = data_input.to(device), target.to(device)
+                data_input = data_input.permute(0, 3, 1, 2)
+                target = target.permute(0, 3, 1, 2)
+
                 optimizer.zero_grad()
                 output = model(data_input)
                 loss = criterion(output, target)
@@ -294,7 +297,8 @@ def main(cfg: DictConfig) -> float:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
                 data_input, target = data_input.to(device), target.to(device)
-
+                data_input = data_input.permute(0, 3, 1, 2)
+                target = target.permute(0, 3, 1, 2)
                 output = eval_step_forward(model, data_input)
                 loss = criterion(output, target)
                 val_loss += loss.item() * data_input.size(0)
