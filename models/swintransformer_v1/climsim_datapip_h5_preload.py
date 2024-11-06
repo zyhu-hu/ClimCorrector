@@ -3,9 +3,8 @@ import numpy as np
 import torch
 import glob
 import h5py
-import nvtx
 
-class climsim_dataset_h5(Dataset):
+class climsim_dataset_h5_preload(Dataset):
     def __init__(self, 
                  parent_path, 
                  input_mean,
@@ -16,6 +15,8 @@ class climsim_dataset_h5(Dataset):
                  target_clip=True,
                  target_clip_value=100):
         """
+        This "preload" version of the climsim_dataset_h5 class loads the entire dataset into memory. 
+        This code is intended to the validation dataset which only has one input/target file.
         Args:
             parent_path (str): Path to the parent directory containing the .h5 files.
             input_mean (float): Mean of the input data.
@@ -27,28 +28,16 @@ class climsim_dataset_h5(Dataset):
             target_clip_value (float): Value to clip the target data to. the QDIFF contains huge negative extremes and may worth clipping.
         """
         self.parent_path = parent_path
-        self.input_paths = glob.glob(f'{parent_path}/**/train_input.h5', recursive=True)
-        print('input paths:', self.input_paths)
-        if not self.input_paths:
-            raise FileNotFoundError("No 'train_input.h5' files found under the specified parent path.")
-        self.target_paths = [path.replace('train_input.h5', 'train_target.h5') for path in self.input_paths]
+        self.input_path = f'{parent_path}/val_input.h5'
+        self.target_path = f'{parent_path}/val_target.h5'
+        print('input paths:', self.input_path)
+        print('target paths:', self.target_path)
 
-        # Initialize lists to hold the samples count per file
-        self.samples_per_file = []
-        for input_path in self.input_paths:
-            with h5py.File(input_path, 'r') as file:  # Open the file to read the number of samples
-                #dataset is named 'data' in the h5 file
-                self.samples_per_file.append(file['data'].shape[0])
-                
-        self.cumulative_samples = np.cumsum([0] + self.samples_per_file)
-        self.total_samples = self.cumulative_samples[-1]
+    
+        self.input_file = h5py.File(self.input_path, 'r')
+        self.target_file = h5py.File(self.target_path, 'r')
+        self.total_samples = self.input_file['data'].shape[0]
 
-        self.input_files = {}
-        self.target_files = {}
-        for input_path, target_path in zip(self.input_paths, self.target_paths):
-            self.input_files[input_path] = h5py.File(input_path, 'r')
-            self.target_files[target_path] = h5py.File(target_path, 'r')
-        
         self.input_mean = input_mean
         self.input_std = input_std
         self.target_mean = target_mean
@@ -59,23 +48,14 @@ class climsim_dataset_h5(Dataset):
     
     def __len__(self):
         return self.total_samples
-    
-    def _find_file_and_index(self, idx):
-        file_idx = np.searchsorted(self.cumulative_samples, idx+1) - 1
-        local_idx = idx - self.cumulative_samples[file_idx]
-        return file_idx, local_idx
-    
+
     def __getitem__(self, idx):
         if idx < 0 or idx >= self.total_samples:
             raise IndexError("Index out of bounds")
-        
-        file_idx, local_idx = self._find_file_and_index(idx)
-        # Open the HDF5 files and read the data for the given index
-        input_file = self.input_files[self.input_paths[file_idx]]
-        target_file = self.target_files[self.target_paths[file_idx]]
-        x = input_file['data'][local_idx]
-        y = target_file['data'][local_idx]
 
+        x = self.input_file['data'][idx]
+        y = self.target_file['data'][idx]
+        
         lat, tod,toy = x[-3:]
         x = (x - self.input_mean) / self.input_std
         y = (y - self.target_mean) / self.target_std
@@ -87,4 +67,5 @@ class climsim_dataset_h5(Dataset):
         x = np.concatenate((x[:-3], [lat_norm, tod_cos, tod_sin, toy_cos, toy_sin]))
         if self.target_clip:
             y = np.clip(y, -self.target_clip_value, self.target_clip_value)
+        
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)

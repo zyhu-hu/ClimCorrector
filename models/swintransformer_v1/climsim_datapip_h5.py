@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import glob
 import h5py
-import nvtx
 
 class climsim_dataset_h5(Dataset):
     def __init__(self, 
@@ -87,4 +86,5 @@ class climsim_dataset_h5(Dataset):
         x = np.concatenate((x[:-3], [lat_norm, tod_cos, tod_sin, toy_cos, toy_sin]))
         if self.target_clip:
             y = np.clip(y, -self.target_clip_value, self.target_clip_value)
+        
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
