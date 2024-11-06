@@ -35,7 +35,6 @@ import torch.nn.functional as F
 from timm.models.layers import DropPath, Mlp, _assert, to_2tuple
 from torch.utils.checkpoint import checkpoint
 
-from neural_transport.models.regulargrid import RegularGridModel
 import modulus
 import nvtx
 from dataclasses import dataclass
