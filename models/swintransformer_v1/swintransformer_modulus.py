@@ -377,7 +377,6 @@ class SwinTransformerV2CrBlock(nn.Module):
         drop_path (float): Dropout in main path
         extra_norm (bool): Insert extra norm on 'main' branch if True
         sequential_attn (bool): If true sequential self-attention is performed
-        norm_layer (nn.Module): Type of normalization layer to be utilized
     """
 
     def __init__(
@@ -394,7 +393,6 @@ class SwinTransformerV2CrBlock(nn.Module):
         drop_path: float = 0.0,
         extra_norm: bool = False,
         sequential_attn: bool = False,
-        norm_layer: nn.Module = nn.LayerNorm(),
         rel_pos: bool = True,
     ) -> None:
         super(SwinTransformerV2CrBlock, self).__init__()
@@ -419,7 +417,7 @@ class SwinTransformerV2CrBlock(nn.Module):
             drop_proj=proj_drop,
             sequential_attn=sequential_attn,
         )
-        self.norm1 = norm_layer(dim)
+        self.norm1 = nn.LayerNorm(dim)
         self.drop_path1 = (
             DropPath(drop_prob=drop_path) if drop_path > 0.0 else nn.Identity()
         )
@@ -431,7 +429,7 @@ class SwinTransformerV2CrBlock(nn.Module):
             drop=proj_drop,
             out_features=dim,
         )
-        self.norm2 = norm_layer(dim)
+        self.norm2 = nn.LayerNorm(dim)
         self.drop_path2 = (
             DropPath(drop_prob=drop_path) if drop_path > 0.0 else nn.Identity()
         )
@@ -570,12 +568,11 @@ class PatchMerging(nn.Module):
     """This class implements the patch merging as a strided convolution with a normalization before.
     Args:
         dim (int): Number of input channels
-        norm_layer (nn.Module): Type of normalization layer to be utilized.
     """
 
-    def __init__(self, dim: int, norm_layer: nn.Module = nn.LayerNorm()) -> None:
+    def __init__(self, dim: int) -> None:
         super(PatchMerging, self).__init__()
-        self.norm = norm_layer(4 * dim)
+        self.norm = nn.LayerNorm(4 * dim)
         self.reduction = nn.Linear(
             in_features=4 * dim, out_features=2 * dim, bias=False
         )
@@ -598,7 +595,7 @@ class PatchEmbed(nn.Module):
     """2D Image to Patch Embedding"""
 
     def __init__(
-        self, img_size=224, patch_size=16, in_chans=3, embed_dim=768, norm_layer=None
+        self, img_size=224, patch_size=16, in_chans=3, embed_dim=768
     ):
         super().__init__()
         img_size = to_2tuple(img_size)
@@ -611,7 +608,7 @@ class PatchEmbed(nn.Module):
         self.proj = nn.Conv2d(
             in_chans, embed_dim, kernel_size=patch_size, stride=patch_size
         )
-        self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
+        self.norm = nn.LayerNorm(embed_dim)
 
     def forward(self, x):
         B, C, H, W = x.shape
@@ -642,7 +639,6 @@ class SwinTransformerV2CrStage(nn.Module):
         proj_drop (float): Dropout in input mapping
         drop_attn (float): Dropout rate of attention map
         drop_path (float): Dropout in main path
-        norm_layer (nn.Module): Type of normalization layer to be utilized. Default: nn.LayerNorm()
         extra_norm_period (int): Insert extra norm layer on main branch every N (period) blocks
         extra_norm_stage (bool): End each stage with an extra norm layer in main branch
         sequential_attn (bool): If true sequential self-attention is performed
@@ -661,7 +657,6 @@ class SwinTransformerV2CrStage(nn.Module):
         proj_drop: float = 0.0,
         drop_attn: float = 0.0,
         drop_path: Union[List[float], float] = 0.0,
-        norm_layer: nn.Module = nn.LayerNorm(),
         extra_norm_period: int = 0,
         extra_norm_stage: bool = False,
         sequential_attn: bool = False,
@@ -677,7 +672,7 @@ class SwinTransformerV2CrStage(nn.Module):
         self.grad_checkpointing = grad_checkpointing
 
         if downscale:
-            self.downsample = PatchMerging(embed_dim, norm_layer=norm_layer)
+            self.downsample = PatchMerging(embed_dim)
             embed_dim = embed_dim * 2
         else:
             self.downsample = nn.Identity()
@@ -713,7 +708,6 @@ class SwinTransformerV2CrStage(nn.Module):
                     ),
                     extra_norm=_extra_norm(index),
                     sequential_attn=sequential_attn,
-                    norm_layer=norm_layer,
                     rel_pos=rel_pos,
                 )
                 for index in range(depth)
@@ -778,7 +772,6 @@ class SwinTransformerV2CrModulus(modulus.Module):
         proj_drop_rate: Projection dropout rate.
         attn_drop_rate: Dropout rate of attention map.
         drop_path_rate: Stochastic depth rate.
-        norm_layer: Type of normalization layer to be utilized.
         extra_norm_period: Insert extra norm layer on main branch every N (period) blocks in stage
         extra_norm_stage: End each stage with an extra norm layer in main branch
         sequential_attn: If true sequential self-attention is performed.
@@ -801,7 +794,6 @@ class SwinTransformerV2CrModulus(modulus.Module):
         proj_drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         drop_path_rate: float = 0.0,
-        norm_layer: nn.Module = nn.LayerNorm(),
         extra_norm_period: int = 0,
         extra_norm_stage: bool = False,
         sequential_attn: bool = False,
@@ -838,7 +830,6 @@ class SwinTransformerV2CrModulus(modulus.Module):
             patch_size=patch_size,
             in_chans=in_chans,
             embed_dim=embed_dim,
-            norm_layer=norm_layer,
         )
         patch_grid_size: Tuple[int, int] = self.patch_embed.grid_size
 
@@ -870,7 +861,6 @@ class SwinTransformerV2CrModulus(modulus.Module):
                     extra_norm_stage=extra_norm_stage
                     or (stage_idx + 1) == len(depths),  # last stage ends w/ norm
                     sequential_attn=sequential_attn,
-                    norm_layer=norm_layer,
                     rel_pos=rel_pos,
                     grad_checkpointing=self.checkpoint_stages,
                     random_shift=random_shift,
