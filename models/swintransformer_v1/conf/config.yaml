@@ -86,7 +86,7 @@ swin:
    out_chans: 104
    embed_dim: 768
    depths: 12
-   num_head: 8
+   num_heads: 8
    mlp_ratio: 4.0
    drop_rate: 0.0
    checkpoint_stages: False

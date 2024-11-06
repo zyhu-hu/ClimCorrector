@@ -243,7 +243,6 @@ class WindowMultiHeadAttention(nn.Module):
         sequential_attn: bool = False,
     ) -> None:
         super(WindowMultiHeadAttention, self).__init__()
-        print(dim, num_heads)
         assert (
             dim % num_heads == 0
         ), "The number of input features (in_features) are not divisible by the number of heads (num_heads)."

@@ -115,7 +115,7 @@ def main(cfg: DictConfig) -> float:
         out_chans = cfg.swin.out_chans,
         embed_dim = cfg.swin.embed_dim,
         depths = (cfg.swin.depths, ),
-        num_head = (cfg.swin.num_head, ),
+        num_heads = (cfg.swin.num_heads, ),
         mlp_ratio = cfg.swin.mlp_ratio,
         drop_rate = cfg.swin.drop_rate,
         full_pos_embed = False,
