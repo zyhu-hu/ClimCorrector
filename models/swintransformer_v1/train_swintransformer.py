@@ -107,40 +107,40 @@ def main(cfg: DictConfig) -> float:
     # create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # model = SwinTransformerV2CrModulus(
-    #     img_size= (96, 144),
-    #     patch_size = 1,
-    #     window_size = (cfg.swin.window_size_x, cfg.swin.window_size_y),
-    #     in_chans = cfg.swin.in_chans,
-    #     out_chans = cfg.swin.out_chans,
-    #     embed_dim = cfg.swin.embed_dim,
-    #     depths = (cfg.swin.depths, ),
-    #     num_heads = (cfg.swin.num_heads, ),
-    #     mlp_ratio = cfg.swin.mlp_ratio,
-    #     drop_rate = cfg.swin.drop_rate,
-    #     full_pos_embed = False,
-    #     rel_pos= True,
-    #     checkpoint_stages = cfg.swin.checkpoint_stages,
-    #     residual = False,
-    #     random_shift = False,
-    # ).to(dist.device)
     model = SwinTransformerV2CrModulus(
         img_size= (96, 144),
         patch_size = 1,
-        window_size = (4,6),
-        in_chans = 114,
-        out_chans = 104,
-        embed_dim = 256,
-        depths = (2, ),
-        num_heads = (8, ),
-        mlp_ratio = 2.0,
-        drop_rate = 0.0,
+        window_size = (cfg.swin.window_size_x, cfg.swin.window_size_y),
+        in_chans = cfg.swin.in_chans,
+        out_chans = cfg.swin.out_chans,
+        embed_dim = cfg.swin.embed_dim,
+        depths = (cfg.swin.depths, ),
+        num_heads = (cfg.swin.num_heads, ),
+        mlp_ratio = cfg.swin.mlp_ratio,
+        drop_rate = cfg.swin.drop_rate,
         full_pos_embed = False,
         rel_pos= True,
-        checkpoint_stages = False,
+        checkpoint_stages = cfg.swin.checkpoint_stages,
         residual = False,
         random_shift = False,
     ).to(dist.device)
+    # model = SwinTransformerV2CrModulus(
+    #     img_size= (96, 144),
+    #     patch_size = 1,
+    #     window_size = (4,6),
+    #     in_chans = 114,
+    #     out_chans = 104,
+    #     embed_dim = 256,
+    #     depths = (2, ),
+    #     num_heads = (8, ),
+    #     mlp_ratio = 2.0,
+    #     drop_rate = 0.0,
+    #     full_pos_embed = False,
+    #     rel_pos= True,
+    #     checkpoint_stages = False,
+    #     residual = False,
+    #     random_shift = False,
+    # ).to(dist.device)
 
     if len(cfg.restart_path) > 0:
         print("Restarting from checkpoint: " + cfg.restart_path)
