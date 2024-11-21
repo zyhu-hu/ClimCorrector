@@ -385,11 +385,16 @@ class data_utils:
                     assert target_array.shape[-1] == this_self.output_shapes[1][-1]
 
                     yield (input_array, target_array)
-
-        dataset = IterableNumpyDataset(
-            gen(),
-            ((None, self.input_feature_len), (None, self.target_feature_len)),
-        )
+        if self.retrieve_independent:
+            dataset = IterableNumpyDataset(
+                gen(),
+                ((None, self.input_feature_len), (None, self.target_feature_len*2)),
+            )
+        else:
+            dataset = IterableNumpyDataset(
+                gen(),
+                ((None, self.input_feature_len), (None, self.target_feature_len)),
+            )
 
         return dataset
     
