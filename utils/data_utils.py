@@ -20,7 +20,10 @@ class data_utils:
                  output_std = None,
                  normalize = False,
                  save_h5=True,
-                 save_npy=False):
+                 save_npy=False,
+                 retrieve_independent = False,
+                 corrector_filename_directory='/n/home04/sweidman/holylfs04/IC_CESM2/',
+                 corrector_filename='spcam_replay'):
        
         self.save_h5 = save_h5
         self.save_npy = save_npy
@@ -51,6 +54,9 @@ class data_utils:
         self.test_regexps = None
         self.test_stride_sample = None
         self.test_filelist = None
+        self.retrieve_independent = retrieve_independent
+        self.corrector_filename_directory = corrector_filename_directory
+        self.corrector_filename = corrector_filename
 
         # physical constants from E3SM_ROOT/share/util/shr_const_mod.F90
         self.grav    = 9.80616    # acceleration of gravity ~ m/s^2
@@ -76,8 +82,39 @@ class data_utils:
                           'SNOWHLND']
         self.v1_inputs_attribute = ['attri_lat',
                                      'TOD',
-                                     'TOY']        
+                                     'TOY']       
+
+        self.v2_inputs_standard = ['T',
+                          'Q',
+                          'U',
+                          'V',
+                          'CLDLIQ',
+                          'CLDICE',
+                          'OMEGA',
+                          'PS',
+                          'SOLIN',
+                          'LHFLX',
+                          'SHFLX',
+                          'SNOWHLND',
+                          'PHIS',
+                          'TAUX',
+                          'TAUY',
+                          'TS',
+                          'ICEFRAC',
+                          'LANDFRAC',
+                          ]
+        self.v2_inputs_attribute = ['attri_lat',
+                                    'attri_lon',
+                                     'TOD',
+                                     'TOY']       
+
+
         self.v1_outputs = ['SDIFF',
+                           'QDIFF',
+                           'UDIFF',
+                           'VDIFF']
+        
+        self.v2_outputs = ['SDIFF',
                            'QDIFF',
                            'UDIFF',
                            'VDIFF']
@@ -87,11 +124,20 @@ class data_utils:
                         'Q':self.num_levels,
                         'U':self.num_levels,
                         'V':self.num_levels,
+                        'CLDLIQ':self.num_levels,
+                        'CLDICE':self.num_levels,
+                        'OMEGA':self.num_levels,
                         'PS':1,
                         'SOLIN':1,
                         'LHFLX':1,
                         'SHFLX':1,
                         'SNOWHLND':1,
+                        'PHIS':1,
+                        'TAUX':1,
+                        'TAUY':1,
+                        'TS':1,
+                        'ICEFRAC':1,
+                        'LANDFRAC':1,
                         #outputs
                         'SdIFF':self.num_levels,
                         'QdIFF':self.num_levels,
@@ -112,7 +158,20 @@ class data_utils:
         self.input_feature_len = 112
         self.target_feature_len = 104
 
-    def get_xrdata(self, file, file_vars_standard = None, file_vars_attribute = None):
+    def set_to_v2_vars(self):
+        '''
+        This function sets the inputs and outputs to the V2 subset.
+        It also indicates the index of the surface pressure variable.
+        '''
+        self.input_vars_standard = self.v2_inputs_standard
+        self.input_vars_attribute = self.v2_inputs_attribute
+        self.input_vars = self.v2_inputs_standard + self.v2_inputs_attribute
+        self.target_vars = self.v2_outputs
+        self.ps_index = 182
+        self.input_feature_len = 197
+        self.target_feature_len = 104
+
+    def get_xrdata_input(self, file, file_vars_standard = None, file_vars_attribute = None):
         '''
         This function reads in a file and returns an xarray dataset with the variables specified.
         file_vars must be a list of strings.
@@ -123,7 +182,7 @@ class data_utils:
 
         # Handle file_vars_standard
         if file_vars_standard is not None:
-            ds_standard = ds[file_vars_standard].isel(time=[1, 4])
+            ds_standard = ds[file_vars_standard].isel(time=[0, 3])
             ds_final = xr.merge([ds_final, ds_standard])
 
         # Handle file_vars_attribute
@@ -134,6 +193,11 @@ class data_utils:
                     lat_data = ds['lat']
                     lat_broadcasted = np.tile(lat_data, (ds_final.sizes['time'], ds_final.sizes['lon'], 1)).transpose(0, 2, 1)
                     ds_final['attri_lat'] = (('time', 'lat', 'lon'), lat_broadcasted.astype(np.float32))
+                elif var == 'attri_lon':
+                    # Broadcast lon to have (time, lat, lon) dimensions
+                    lon_data = ds['lon']
+                    lon_broadcasted = np.tile(lon_data, (ds_final.sizes['time'], ds_final.sizes['lat'], 1))
+                    ds_final['attri_lon'] = (('time', 'lat', 'lon'), lon_broadcasted.astype(np.float32))
                 elif var == 'TOD':
                     # Compute TOD (time of day) from ds.time
                     tod_data = (ds_final.time.dt.hour + ds_final.time.dt.minute / 60.0).values
@@ -147,12 +211,51 @@ class data_utils:
 
         return ds_final
     
+    def get_xrdata_target(self, file, file_vars_standard = None, retrieve_independent = False):
+        '''
+        This function reads in a file and returns an xarray dataset with the variables specified.
+        file_vars must be a list of strings.
+        '''
+        ds = xr.open_dataset(file, engine = 'netcdf4')
+
+        ds_final = xr.Dataset()
+
+        # Handle file_vars_standard
+        if file_vars_standard is not None:
+            ds_standard = ds[file_vars_standard].isel(time=[1, 4])
+            ds_final = xr.merge([ds_final, ds_standard])
+
+        if retrieve_independent:
+            # Retrieve the independent bias correction fields
+            ds_time = ds_standard.time
+            filename1 = self.corrector_filename_directory + self.corrector_filename + f'.{int(ds_time.dt.month[0]):02}-{int(ds_time.dt.day[0]):02}-{int((ds_time.dt.hour[0]-3)*21600/6):05}.nc'
+            filename2 = self.corrector_filename_directory + self.corrector_filename + f'.{int(ds_time.dt.month[1]):02}-{int(ds_time.dt.day[1]):02}-{int((ds_time.dt.hour[1]-3)*21600/6):05}.nc'
+            # check if filename1 and filename2 exist
+            if not (os.path.exists(filename1) and os.path.exists(filename2)):
+                print('Corrector files do not exist. Please check the corrector_filename_directory and corrector_filename.')
+                print('filename1:', filename1)
+                print('filename2:', filename2)
+                raise FileNotFoundError
+            # read the two the corrector files together and concatenate the time coordinate
+            ds_corrector1 = xr.open_dataset(filename1)
+            ds_corrector2 = xr.open_dataset(filename2)
+            sdiff_corrector = xr.concat([ds_corrector1['SDIFF'], ds_corrector2['SDIFF']], dim='time')
+            qdiff_corrector = xr.concat([ds_corrector1['QDIFF'], ds_corrector2['QDIFF']], dim='time')
+            udiff_corrector = xr.concat([ds_corrector1['UDIFF'], ds_corrector2['UDIFF']], dim='time')
+            vdiff_corrector = xr.concat([ds_corrector1['VDIFF'], ds_corrector2['VDIFF']], dim='time')
+            ds_final['SDIFF_IC'] = (('time', 'lat', 'lon'), sdiff_corrector.values.astype(np.float32))
+            ds_final['QDIFF_IC'] = (('time', 'lat', 'lon'), qdiff_corrector.values.astype(np.float32))
+            ds_final['UDIFF_IC'] = (('time', 'lat', 'lon'), udiff_corrector.values.astype(np.float32))
+            ds_final['VDIFF_IC'] = (('time', 'lat', 'lon'), vdiff_corrector.values.astype(np.float32))
+                
+        return ds_final
+    
     def get_input(self, input_file):
         '''
         This function reads in a file and returns an xarray dataset with the input variables for the emulator.
         '''
         # read inputs
-        return self.get_xrdata(input_file, self.input_vars_standard, self.input_vars_attribute)
+        return self.get_xrdata_input(input_file, self.input_vars_standard, self.input_vars_attribute)
 
 
     def get_target(self, input_file):
@@ -160,7 +263,7 @@ class data_utils:
         This function reads in a file and returns an xarray dataset with the target variables for the emulator.
         '''
         
-        ds_target = self.get_xrdata(input_file, self.target_vars)
+        ds_target = self.get_xrdata_target(input_file, self.target_vars, retrieve_independent=self.retrieve_independent)
         return ds_target
     
     def set_regexps(self, data_split, regexps):
@@ -301,8 +404,7 @@ class data_utils:
         npy_input = np.concatenate([npy_iterator[x][0] for x in range(len(npy_iterator))])
         if self.normalize:
             # replace inf and nan with 0
-            npy_input[np.isinf(npy_input)] = 0 
-            npy_input[np.isnan(npy_input)] = 0
+            raise ValueError('Normalization is not implemented yet.')
 
         # if save_path not exist, create it
         if not os.path.exists(save_path):
@@ -322,15 +424,36 @@ class data_utils:
         del npy_input
         
         npy_target = np.concatenate([npy_iterator[x][1] for x in range(len(npy_iterator))])
-        npy_target = np.float32(npy_target)
-
-        if self.save_npy:
-            with open(save_path + data_split + '_target.npy', 'wb') as f:
-                np.save(f, npy_target)
-        if self.save_h5:
-            h5_path = save_path + data_split + '_target.h5'
-            with h5py.File(h5_path, 'w') as hdf:
-                hdf.create_dataset('data', data=npy_target, dtype=npy_target.dtype)
+        if self.retrieve_independent:
+            npy_target_dc = np.float32(npy_target[:,:npy_target.shape[1]//2])
+            npy_target_ic = np.float32(npy_target[:,npy_target.shape[1]//2:])
+            npy_target_sum = npy_target_dc + npy_target_ic
+            if self.save_npy:
+                with open(save_path + data_split + '_target_dc.npy', 'wb') as f:
+                    np.save(f, npy_target_dc)
+                with open(save_path + data_split + '_target_ic.npy', 'wb') as f:
+                    np.save(f, npy_target_ic)
+                with open(save_path + data_split + '_target_sum.npy', 'wb') as f:
+                    np.save(f, npy_target_sum)
+            if self.save_h5:
+                h5_path_dc = save_path + data_split + '_target_dc.h5'
+                with h5py.File(h5_path_dc, 'w') as hdf:
+                    hdf.create_dataset('data', data=npy_target_dc, dtype=npy_target_dc.dtype)
+                h5_path_ic = save_path + data_split + '_target_ic.h5'
+                with h5py.File(h5_path_ic, 'w') as hdf:
+                    hdf.create_dataset('data', data=npy_target_ic, dtype=npy_target_ic.dtype)
+                h5_path_sum = save_path + data_split + '_target_sum.h5'
+                with h5py.File(h5_path_sum, 'w') as hdf:
+                    hdf.create_dataset('data', data=npy_target_sum, dtype=npy_target_sum.dtype)
+        else:
+            npy_target = np.float32(npy_target)
+            if self.save_npy:
+                with open(save_path + data_split + '_target.npy', 'wb') as f:
+                    np.save(f, npy_target)
+            if self.save_h5:
+                h5_path = save_path + data_split + '_target.h5'
+                with h5py.File(h5_path, 'w') as hdf:
+                    hdf.create_dataset('data', data=npy_target, dtype=npy_target.dtype)
 
     
         
