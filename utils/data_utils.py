@@ -243,10 +243,10 @@ class data_utils:
             qdiff_corrector = xr.concat([ds_corrector1['QDIFF'], ds_corrector2['QDIFF']], dim='time')
             udiff_corrector = xr.concat([ds_corrector1['UDIFF'], ds_corrector2['UDIFF']], dim='time')
             vdiff_corrector = xr.concat([ds_corrector1['VDIFF'], ds_corrector2['VDIFF']], dim='time')
-            ds_final['SDIFF_IC'] = (('time', 'lat', 'lon'), sdiff_corrector.values.astype(np.float32))
-            ds_final['QDIFF_IC'] = (('time', 'lat', 'lon'), qdiff_corrector.values.astype(np.float32))
-            ds_final['UDIFF_IC'] = (('time', 'lat', 'lon'), udiff_corrector.values.astype(np.float32))
-            ds_final['VDIFF_IC'] = (('time', 'lat', 'lon'), vdiff_corrector.values.astype(np.float32))
+            ds_final['SDIFF_IC'] = (('time', 'lev', 'lat', 'lon'), sdiff_corrector.values.astype(np.float32))
+            ds_final['QDIFF_IC'] = (('time', 'lev', 'lat', 'lon'), qdiff_corrector.values.astype(np.float32))
+            ds_final['UDIFF_IC'] = (('time', 'lev', 'lat', 'lon'), udiff_corrector.values.astype(np.float32))
+            ds_final['VDIFF_IC'] = (('time', 'lev', 'lat', 'lon'), vdiff_corrector.values.astype(np.float32))
                 
         return ds_final
     
