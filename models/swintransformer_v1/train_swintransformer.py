@@ -84,7 +84,8 @@ def main(cfg: DictConfig) -> float:
     if not os.path.exists(val_input_path):
         raise FileNotFoundError("No 'val_input.h5' file found under the specified parent path.")
 
-    val_dataset = climsim_dataset_processed_h5_preload(parent_path=val_dataset_path)
+    # val_dataset = climsim_dataset_processed_h5_preload(parent_path=val_dataset_path)
+    val_dataset = climsim_dataset_processed_h5(parent_path=val_dataset_path,stage='val',target_filename=cfg.target_filename)
     val_sampler = DistributedSampler(val_dataset, shuffle=False) if dist.distributed else None
     val_loader = DataLoader(val_dataset, 
                             batch_size=cfg.batch_size, 
@@ -92,7 +93,7 @@ def main(cfg: DictConfig) -> float:
                             sampler=val_sampler,
                             num_workers=cfg.num_workers)
     
-    train_dataset = climsim_dataset_processed_h5(parent_path=train_dataset_path)
+    train_dataset = climsim_dataset_processed_h5(parent_path=train_dataset_path,stage='train',target_filename=cfg.target_filename)
 
     train_sampler = DistributedSampler(train_dataset) if dist.distributed else None
     

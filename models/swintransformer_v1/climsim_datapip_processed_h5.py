@@ -6,7 +6,9 @@ import h5py
 
 class climsim_dataset_processed_h5(Dataset):
     def __init__(self, 
-                 parent_path, 
+                 parent_path,
+                 stage='train',
+                 target_filename='target' 
                  ):
         """
         Args:
@@ -14,11 +16,13 @@ class climsim_dataset_processed_h5(Dataset):
             
         """
         self.parent_path = parent_path
-        self.input_paths = glob.glob(f'{parent_path}/**/train_input.h5', recursive=True)
+        self.stage = stage
+        self.input_paths = glob.glob(f'{parent_path}/**/{stage}_input.h5', recursive=True)
+        self.target_filename = target_filename
         print('input paths:', self.input_paths)
         if not self.input_paths:
-            raise FileNotFoundError("No 'train_input.h5' files found under the specified parent path.")
-        self.target_paths = [path.replace('train_input.h5', 'train_target.h5') for path in self.input_paths]
+            raise FileNotFoundError(f"No '{stage}_input.h5' files found under the specified parent path.")
+        self.target_paths = [path.replace(f'{stage}_input.h5', f'{stage}_{self.target_filename}.h5') for path in self.input_paths]
 
         # Initialize lists to hold the samples count per file
         self.samples_per_file = []

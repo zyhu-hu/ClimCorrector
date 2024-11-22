@@ -8,7 +8,7 @@ target_mean: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/outpu
 target_std: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/outputs/target_std_v1_test1_10year_sub7.npy'
 restart_path: ''
 save_path: '/n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/climcorr/saved_models/'
-
+target_filename: 'target'
 
 # dataloader configuration
 variable_subsets: 'v1'
