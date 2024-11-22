@@ -60,6 +60,8 @@ def main(cfg: DictConfig) -> float:
     # set variables to subset
     if cfg.variable_subsets == 'v1': 
         data.set_to_v1_vars()
+    elif cfg.variable_subsets == 'v2':
+        data.set_to_v2_vars()
     else:
         raise ValueError('Unknown variable subset')
 
@@ -68,6 +70,9 @@ def main(cfg: DictConfig) -> float:
     output_size = data.target_feature_len
     if cfg.variable_subsets == 'v1': 
         input_size_nn = input_size + 2 # for tod and toy, I will add cos and sine of tod and toy
+        output_size_nn = output_size
+    elif cfg.variable_subsets == 'v2':
+        input_size_nn = input_size + 3
         output_size_nn = output_size
     else:
         raise ValueError('Unknown variable subset')
