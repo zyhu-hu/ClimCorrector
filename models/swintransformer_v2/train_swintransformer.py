@@ -85,8 +85,8 @@ def main(cfg: DictConfig) -> float:
     if not train_input_path:
         raise FileNotFoundError("No 'train_input.h5' files found under the specified parent path.")
     # check if val_dataset_path/val_input.h5 exists
-    val_input_path = f'{val_dataset_path}/**/val_input.h5'
-    if not os.path.exists(val_input_path):
+    val_input_path =glob.glob(f'{val_dataset_path}/**/val_input.h5')
+    if not val_input_path:
         raise FileNotFoundError("No 'val_input.h5' file found under the specified parent path.")
 
     # val_dataset = climsim_dataset_processed_h5_preload(parent_path=val_dataset_path)
