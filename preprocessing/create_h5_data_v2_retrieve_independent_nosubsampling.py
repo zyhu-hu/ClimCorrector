@@ -1,0 +1,35 @@
+from utils.data_utils import *
+import argparse
+
+def main(regexps, data_path, save_path):
+    data = data_utils(normalize=False,
+                  save_h5=True,
+                  save_npy=False,
+                  retrieve_independent=True
+                  )
+    # set the path to model outputs
+    data.data_path = data_path
+    # set the input and target features
+    data.set_to_v2_vars()
+    print(regexps)
+    data.set_regexps(data_split = 'train', 
+                    regexps = regexps)
+    # set temporal subsampling
+    # data.set_stride_sample(data_split = 'train', stride_sample = stride_sample)
+    # create list of files to extract data from
+    data.set_filelist_nosubsampling(data_split = 'train')
+    print('files to be processed (top 10 and last 10 are printed out below):')
+    print(data.get_filelist('train')[:10])
+    print(data.get_filelist('train')[-10:])
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    data.save_data(data_split='train', save_path=save_path)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Process E3SM-MMF data.')
+    parser.add_argument('regexps', type=str, nargs='+', help='Regular expressions for selecting data files.')
+    parser.add_argument('--data_path', type=str, required=True, help='Path to the data files.')
+    parser.add_argument('--save_path', type=str, required=True, help='Path to save processed data.')
+    args = parser.parse_args()
+
+    main(args.regexps, args.data_path, args.save_path)
