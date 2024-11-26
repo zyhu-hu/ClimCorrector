@@ -21,14 +21,14 @@ source activate /n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/mamba_env/clim
 python preprocessing/create_h5_data_v2_retrieve_independent_nosubsampling.py \
     'spcam_replay_2iter.cam.h1.1985-*.nc' \
     --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_replay_2iter/atm/hist/' \
-    --save_path '/n/home00/zeyuanhu/scratch/climcorr_preprocessing/v2_iter2_include_lastfile/1985/' \
+    --save_path '/n/home00/zeyuanhu/holylfs04/climcorr_preprocessing/v2_iter2_include_lastfile/1985/' \
 
 
 
 python preprocessing/create_h5_data_v2_retrieve_independent_nosubsampling.py \
     'spcam_replay_2iter.cam.h1.1986-*.nc' \
     --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_replay_2iter/atm/hist/' \
-    --save_path '/n/home00/zeyuanhu/scratch/climcorr_preprocessing/v2_iter2_include_lastfile/1986/' \
+    --save_path '/n/home00/zeyuanhu/holylfs04/climcorr_preprocessing/v2_iter2_include_lastfile/1986/' \
 
 
 
@@ -36,7 +36,7 @@ python preprocessing/create_h5_data_v2_retrieve_independent_nosubsampling.py \
 python preprocessing/create_h5_data_v2_retrieve_independent_nosubsampling.py \
     'spcam_replay_2iter.cam.h1.1987-*.nc' \
     --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_replay_2iter/atm/hist/' \
-    --save_path '/n/home00/zeyuanhu/scratch/climcorr_preprocessing/v2_iter2_include_lastfile/1987/' \
+    --save_path '/n/home00/zeyuanhu/holylfs04/climcorr_preprocessing/v2_iter2_include_lastfile/1987/' \
 
 
 
@@ -44,7 +44,7 @@ python preprocessing/create_h5_data_v2_retrieve_independent_nosubsampling.py \
 python preprocessing/create_h5_data_v2_retrieve_independent_nosubsampling.py \
     'spcam_replay_2iter.cam.h1.1988-*.nc' \
     --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_replay_2iter/atm/hist/' \
-    --save_path '/n/home00/zeyuanhu/scratch/climcorr_preprocessing/v2_iter2_include_lastfile/1988/' \
+    --save_path '/n/home00/zeyuanhu/holylfs04/climcorr_preprocessing/v2_iter2_include_lastfile/1988/' \
 
 
 
@@ -52,7 +52,7 @@ python preprocessing/create_h5_data_v2_retrieve_independent_nosubsampling.py \
 python preprocessing/create_h5_data_v2_retrieve_independent_nosubsampling.py \
     'spcam_replay_2iter.cam.h1.1989-*.nc' \
     --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_replay_2iter/atm/hist/' \
-    --save_path '/n/home00/zeyuanhu/scratch/climcorr_preprocessing/v2_iter2_include_lastfile/1989/' \
+    --save_path '/n/home00/zeyuanhu/holylfs04/climcorr_preprocessing/v2_iter2_include_lastfile/1989/' \
 
 
 
