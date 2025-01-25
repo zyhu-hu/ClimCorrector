@@ -36,6 +36,7 @@ import gc
 from torch.nn.utils import clip_grad_norm_
 import shutil
 import random
+from soap import SOAP
 
 torch.set_float32_matmul_precision("high")
 # Set a fixed seed value
@@ -184,6 +185,8 @@ def main(cfg: DictConfig) -> float:
         optimizer = optim.Adam(model.parameters(), lr=cfg.learning_rate)
     elif cfg.optimizer == 'adamw':
         optimizer = optim.AdamW(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
+    elif cfg.optimizer == 'soap':
+        optimizer = SOAP(model.parameters(), lr = cfg.learning_rate, betas=(.95, .95), weight_decay=.01, precondition_frequency=10)
     else:
         raise ValueError('Optimizer not implemented')
     
