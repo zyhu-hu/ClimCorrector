@@ -7,6 +7,7 @@ input_std: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/inputs/
 target_mean: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/outputs/target_mean_v1_test1_10year_sub7.npy'
 target_std: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/outputs/target_std_v1_test1_10year_sub7.npy'
 restart_path: ''
+restart_full_ckpt: False
 save_path: '/n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/climcorr/saved_models/'
 target_filename: 'target'
 

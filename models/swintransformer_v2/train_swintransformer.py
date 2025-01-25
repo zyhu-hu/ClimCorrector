@@ -37,6 +37,7 @@ from torch.nn.utils import clip_grad_norm_
 import shutil
 import random
 from soap import SOAP
+from modulus.launch.utils import load_checkpoint, save_checkpoint
 
 torch.set_float32_matmul_precision("high")
 # Set a fixed seed value
@@ -131,23 +132,40 @@ def main(cfg: DictConfig) -> float:
         residual = False,
         random_shift = False,
     ).to(dist.device)
-    # model = SwinTransformerV2CrModulus(
-    #     img_size= (96, 144),
-    #     patch_size = 1,
-    #     window_size = (4,6),
-    #     in_chans = 114,
-    #     out_chans = 104,
-    #     embed_dim = 256,
-    #     depths = (2, ),
-    #     num_heads = (8, ),
-    #     mlp_ratio = 2.0,
-    #     drop_rate = 0.0,
-    #     full_pos_embed = False,
-    #     rel_pos= True,
-    #     checkpoint_stages = False,
-    #     residual = False,
-    #     random_shift = False,
-    # ).to(dist.device)
+
+    # create optimizer
+    if cfg.optimizer == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=cfg.learning_rate)
+    elif cfg.optimizer == 'adamw':
+        optimizer = optim.AdamW(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
+    elif cfg.optimizer == 'soap':
+        optimizer = SOAP(model.parameters(), lr = cfg.learning_rate, betas=(.95, .95), weight_decay=.01, precondition_frequency=10)
+    else:
+        raise ValueError('Optimizer not implemented')
+    
+    # create scheduler
+    if cfg.scheduler_name == 'step':
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
+    elif cfg.scheduler_name == 'plateau':
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
+    elif cfg.scheduler_name == 'cosine':
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
+    elif cfg.scheduler_name == 'cosine_warmup':
+        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=cfg.scheduler.cosine_warmup.T_0, T_mult=cfg.scheduler.cosine_warmup.T_mult, eta_min=cfg.scheduler.cosine_warmup.eta_min)
+    else:
+        raise ValueError('Scheduler not implemented')
+
+    save_path = os.path.join(cfg.save_path, cfg.expname) #cfg.save_path + cfg.expname
+    save_path_ckpt = os.path.join(save_path, 'ckpt')
+    save_path_ckpt_full = os.path.join(save_path_ckpt, 'ckpt_full')
+    if dist.rank == 0:
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        if not os.path.exists(save_path_ckpt):
+            os.makedirs(save_path_ckpt)
+        if not os.path.exists(save_path_ckpt_full):
+            os.makedirs(save_path_ckpt_full)
+
 
     if len(cfg.restart_path) > 0:
         print("Restarting from checkpoint: " + cfg.restart_path)
@@ -180,27 +198,18 @@ def main(cfg: DictConfig) -> float:
             )
         torch.cuda.current_stream().wait_stream(ddps)
 
-    # create optimizer
-    if cfg.optimizer == 'adam':
-        optimizer = optim.Adam(model.parameters(), lr=cfg.learning_rate)
-    elif cfg.optimizer == 'adamw':
-        optimizer = optim.AdamW(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
-    elif cfg.optimizer == 'soap':
-        optimizer = SOAP(model.parameters(), lr = cfg.learning_rate, betas=(.95, .95), weight_decay=.01, precondition_frequency=10)
+    if cfg.restart_full_ckpt:
+        print("Restarting from full checkpoint: " + save_path_ckpt_full)
+        loaded_epoch = load_checkpoint(
+            save_path_ckpt_full,
+            models=model,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            device="cuda",
+        )
     else:
-        raise ValueError('Optimizer not implemented')
-    
-    # create scheduler
-    if cfg.scheduler_name == 'step':
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
-    elif cfg.scheduler_name == 'plateau':
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
-    elif cfg.scheduler_name == 'cosine':
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
-    elif cfg.scheduler_name == 'cosine_warmup':
-        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=cfg.scheduler.cosine_warmup.T_0, T_mult=cfg.scheduler.cosine_warmup.T_mult, eta_min=cfg.scheduler.cosine_warmup.eta_min)
-    else:
-        raise ValueError('Scheduler not implemented')
+        loaded_epoch = 0
+
     
     # create loss function
     if cfg.loss == 'mse':
@@ -215,7 +224,6 @@ def main(cfg: DictConfig) -> float:
     
     # Initialize the console logger
     logger = PythonLogger("main")  # General python logger
-    logger0 = RankZeroLoggingWrapper(logger, dist)
 
     if cfg.logger == 'wandb':
         # Initialize the MLFlow logger
@@ -228,7 +236,7 @@ def main(cfg: DictConfig) -> float:
         LaunchLogger.initialize(use_wandb=True)
 
     if cfg.save_top_ckpts<=0:
-        logger0.info("Checkpoints should be set >0, setting to 1")
+        logger.info("Checkpoints should be set >0, setting to 1")
         num_top_ckpts = 1
     else:
         num_top_ckpts = cfg.save_top_ckpts
@@ -267,9 +275,9 @@ def main(cfg: DictConfig) -> float:
         return my_model(invar)
     
     #training block
-    logger0.info("Starting Training!")
+    logger.info("Starting Training!")
     # Basic training block with tqdm for progress tracking
-    for epoch in range(cfg.epochs):
+    for epoch in range(max(1,loaded_epoch+1),cfg.epochs+1):
         if dist.distributed:
             train_sampler.set_epoch(epoch)
 
@@ -278,7 +286,7 @@ def main(cfg: DictConfig) -> float:
 
             total_iterations = len(train_loader)
             # Wrap train_loader with tqdm for a progress bar
-            train_loop = tqdm(train_loader, desc=f'Epoch {epoch+1}')
+            train_loop = tqdm(train_loader, desc=f'Epoch {epoch}')
             current_step = 0
             for iteration, (data_input, target) in enumerate(train_loop):
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
@@ -310,14 +318,14 @@ def main(cfg: DictConfig) -> float:
                 launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy(), "lr": optimizer.param_groups[0]["lr"], "total_norm": total_norm.item()})
 
                 # Update the progress bar description with the current loss
-                train_loop.set_description(f'Epoch {epoch+1}')
+                train_loop.set_description(f'Epoch {epoch}')
                 train_loop.set_postfix(loss=loss.item())
                 current_step += 1
             
             model.eval()
             val_loss = 0.0
             num_samples_processed = 0
-            val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]')
+            val_loop = tqdm(val_loader, desc=f'Epoch {epoch}/1 [Validation]')
             current_step = 0
             for data_input, target in val_loop:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
@@ -355,7 +363,7 @@ def main(cfg: DictConfig) -> float:
                     is_better = current_metric > min(top_checkpoints, key=lambda x: x[0])[0]
                 
                 if len(top_checkpoints) == 0 or is_better:
-                    ckpt_path = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}.mdlus')
+                    ckpt_path = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch}_metric_{current_metric:.4f}.mdlus')
                     if dist.distributed:
                         model.module.save(ckpt_path)
                     else:
@@ -384,9 +392,20 @@ def main(cfg: DictConfig) -> float:
             
             if dist.world_size > 1:
                 torch.distributed.barrier()
+
+            # add saving full checkpoint including optimizer/scheduler state
+            if cfg.restart_full_ckpt:
+                if dist.rank == 0:
+                    save_checkpoint(
+                        save_path_ckpt_full,
+                        models=model,
+                        optimizer=optimizer,
+                        scheduler=scheduler,
+                        epoch=epoch,
+                    )
                 
     if dist.rank == 0:
-        logger0.info("Start recovering the model from the top checkpoint to do torchscript conversion")         
+        logger.info("Start recovering the model from the top checkpoint to do torchscript conversion")         
         #recover the model weight to the top checkpoint
         model = modulus.Module.from_checkpoint(top_checkpoints[0][1]).to(device)
 
@@ -407,9 +426,9 @@ def main(cfg: DictConfig) -> float:
         # shutil.copy(cfg.target_mean, save_path+'/target_mean.npy')
         # shutil.copy(cfg.target_std, save_path+'/target_std.npy')
         
-        logger0.info("saved model to: " + save_path)
+        logger.info("saved model to: " + save_path)
 
-        logger0.info("Training complete!")
+        logger.info("Training complete!")
 
     return current_val_loss_avg
 
