@@ -310,12 +310,13 @@ def main(cfg: DictConfig) -> float:
                 if cfg.clip_grad:
                     clip_grad_norm_(model.parameters(), max_norm=cfg.clip_grad_norm)
 
-                total_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in model.parameters() if p.grad is not None]), 2)
+                # total_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in model.parameters() if p.grad is not None]), 2)
                 optimizer.step()
                 if cfg.scheduler_name == 'cosine_warmup':
                     scheduler.step(epoch + iteration / total_iterations)
 
-                launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy(), "lr": optimizer.param_groups[0]["lr"], "total_norm": total_norm.item()})
+                # launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy(), "lr": optimizer.param_groups[0]["lr"], "total_norm": total_norm.item()})
+                launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy(), "lr": optimizer.param_groups[0]["lr"]})
 
                 # Update the progress bar description with the current loss
                 train_loop.set_description(f'Epoch {epoch}')
