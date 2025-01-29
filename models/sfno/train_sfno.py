@@ -137,7 +137,7 @@ def main(cfg: DictConfig) -> float:
     # ).to(dist.device)
 
     model = SFNOModulus(
-        img_shape=(96, 144),
+        img_size=(96, 144),
         scale_factor=cfg.sfno.scale_factor,
         in_chans=cfg.sfno.in_chans,
         out_chans=cfg.sfno.out_chans,
