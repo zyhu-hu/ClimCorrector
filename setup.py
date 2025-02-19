@@ -15,6 +15,7 @@ install_requires = [
     "h5py",
     "tqdm",
     'jupyterlab',
+    'ipykernel',
 ]
 
 setup(

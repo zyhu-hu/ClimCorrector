@@ -1,3 +1,5 @@
+# This file is adapted from the ClimSim repository: https://github.com/leap-stc/ClimSim
+
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -24,6 +26,42 @@ class data_utils:
                  retrieve_independent = False,
                  corrector_filename_directory='/n/home04/sweidman/holylfs04/IC_CESM2/',
                  corrector_filename='spcam_replay'):
+        '''
+        This class is used for preparing the training data.
+        input_mean: a numpy array of shape (input_feature_len,) containing the mean of the input data. Only used if normalize is True.
+        input_std: a numpy array of shape (input_feature_len,) containing the standard deviation of the input data. Only used if normalize is True.
+        output_mean: a numpy array of shape (target_feature_len,) containing the mean of the target data. Only used if normalize is True.
+        output_std: a numpy array of shape (target_feature_len,) containing the standard deviation of the target data. Only used if normalize is True.
+        normalize: a boolean indicating whether to normalize the data. Default is False.
+        save_h5: a boolean indicating whether to save the data as .h5 files. Default is True. Recommended to save the .h5 format instead of the .npy format for better scalability.
+        save_npy: a boolean indicating whether to save the data as .npy files. Default is False. 
+        retrieve_independent: a boolean indicating whether to retrieve the independent bias correction fields, i.e., save also the state-independent component of the increment.
+        corrector_filename_directory: a string indicating the directory where the precomputed state-independent bias correction fields are stored. Only used if retrieve_independent is True.
+        corrector_filename: a string indicating the prefix of the precomputed state-independent bias correction fields. Only used if retrieve_independent is True.
+
+        Example usage:
+        %cd /n/home00/zeyuanhu/ClimCorrector
+        from utils.data_utils import *
+        # create an instance of the data_utils class
+        data = data_utils(normalize=False,
+                  save_h5=True,
+                  save_npy=False
+                  )
+        # set the path to CESM replay simulations' outputs
+        data.data_path = '/n/home04/sweidman/cesm_output/replay_state_ind1/atm/hist/'
+        # set the input and target features. Currently I defined v1 and v2 sets of inputs and outputs. You can also define your own.
+        data.set_to_v1_vars()
+        # set regular expressions for selecting training data. data_split can be 'train', 'val', or 'test' and will only be used for determining the filename of the saved training data
+        data.set_regexps(data_split = 'train', 
+                        regexps = ['replay_state_ind1.cam.h1.0002-01-*-*.nc', 
+                                'replay_state_ind1.cam.h1.0002-02-*-*.nc'])
+        # set temporal subsampling
+        data.set_stride_sample(data_split = 'train', stride_sample = 10)
+        # create list of files to extract data from. In this example, we will sample every 10th file from the regexps provided, starting from the 0th file indicated by start_idx.
+        data.set_filelist(data_split = 'train', start_idx=0)
+        # save the training data under the save_path specified below. Since we use data_split = 'train', the saved data will be named 'train_input.h5', 'train_target.h5'. 
+        data.save_data(data_split = 'train', save_path = '/n/home00/zeyuanhu/holylfs04/preprocessing/test1/')
+        '''
        
         self.save_h5 = save_h5
         self.save_npy = save_npy
@@ -290,7 +328,7 @@ class data_utils:
         elif data_split == 'test':
             self.test_stride_sample = stride_sample
 
-    def set_filelist(self, data_split, start_idx = 0, end_idx = -1):
+    def set_filelist(self, data_split, start_idx = 0, end_idx = None):
         '''
         This function sets the filelists corresponding to data splits for train, val, and test.
         '''
@@ -318,7 +356,7 @@ class data_utils:
 
     def set_filelist_nosubsampling(self, data_split):
         '''
-        This function sets the filelists corresponding to data splits for train, val, and test.
+        This function sets the filelists corresponding to data splits for train, val, and test. No subsampling is applied.
         '''
         filelist = []
         assert data_split in ['train', 'val', 'test'], 'Provided data_split is not valid. Available options are train, val, and test.'
