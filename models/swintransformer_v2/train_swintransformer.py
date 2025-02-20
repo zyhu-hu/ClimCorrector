@@ -4,7 +4,6 @@ import numpy as np
 import torch.optim as optim
 import torch.nn as nn
 from tqdm import tqdm
-from dataclasses import dataclass
 import modulus
 from modulus.metrics.general.mse import mse
 from modulus.utils import StaticCaptureTraining, StaticCaptureEvaluateNoGrad
@@ -13,17 +12,9 @@ from modulus.launch.logging import (
     PythonLogger,
     LaunchLogger,
     initialize_wandb,
-    RankZeroLoggingWrapper,
 )
 from utils.data_utils import *
-from climsim_datapip_processed_h5_preload import climsim_dataset_processed_h5_preload
 from climsim_datapip_processed_h5 import climsim_dataset_processed_h5
-
-# from lstm8th import LSTM8th
-# import lstm8th as lstm8th
-
-# from climsim_unet import ClimsimUnet
-# import climsim_unet as climsim_unet
 
 from swintransformer_modulus import SwinTransformerV2CrModulus
 import swintransformer_modulus as swintransformer_modulus
@@ -57,28 +48,6 @@ def main(cfg: DictConfig) -> float:
     DistributedManager.initialize()
     dist = DistributedManager()
 
-
-    data = data_utils()
-    # set variables to subset
-    if cfg.variable_subsets == 'v1': 
-        data.set_to_v1_vars()
-    elif cfg.variable_subsets == 'v2':
-        data.set_to_v2_vars()
-    else:
-        raise ValueError('Unknown variable subset')
-
-    # retrieve the size of the input and output
-    input_size = data.input_feature_len
-    output_size = data.target_feature_len
-    if cfg.variable_subsets == 'v1': 
-        input_size_nn = input_size + 2 # for tod and toy, I will add cos and sine of tod and toy
-        output_size_nn = output_size
-    elif cfg.variable_subsets == 'v2':
-        input_size_nn = input_size + 3
-        output_size_nn = output_size
-    else:
-        raise ValueError('Unknown variable subset')
-
     train_dataset_path = cfg.train_dataset_path
     val_dataset_path = cfg.val_dataset_path
     
@@ -87,11 +56,12 @@ def main(cfg: DictConfig) -> float:
     if not train_input_path:
         raise FileNotFoundError("No 'train_input.h5' files found under the specified parent path.")
     # check if val_dataset_path/val_input.h5 exists
+    # note that here I assumed there is one or a few subfolders under val_dataset_path that contains val_input.h5
     val_input_path =glob.glob(f'{val_dataset_path}/**/val_input.h5')
     if not val_input_path:
         raise FileNotFoundError("No 'val_input.h5' file found under the specified parent path.")
 
-    # val_dataset = climsim_dataset_processed_h5_preload(parent_path=val_dataset_path)
+    # create the distributed validation dataloader below
     val_dataset = climsim_dataset_processed_h5(parent_path=val_dataset_path,stage='val',target_filename=cfg.target_filename)
     val_sampler = DistributedSampler(val_dataset, shuffle=False) if dist.distributed else None
     val_loader = DataLoader(val_dataset, 
@@ -100,10 +70,9 @@ def main(cfg: DictConfig) -> float:
                             sampler=val_sampler,
                             num_workers=cfg.num_workers)
     
+    # create the distributed training dataloader below
     train_dataset = climsim_dataset_processed_h5(parent_path=train_dataset_path,stage='train',target_filename=cfg.target_filename)
-
     train_sampler = DistributedSampler(train_dataset) if dist.distributed else None
-    
     train_loader = DataLoader(train_dataset, 
                                 batch_size=cfg.batch_size, 
                                 shuffle=False if dist.distributed else True,
@@ -114,7 +83,6 @@ def main(cfg: DictConfig) -> float:
 
     # create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     model = SwinTransformerV2CrModulus(
         img_size= (96, 144),
         patch_size = 1,
@@ -155,6 +123,12 @@ def main(cfg: DictConfig) -> float:
     else:
         raise ValueError('Scheduler not implemented')
 
+    # create paths to save model weights
+    # save_path will save the final model weights. In my code, this final saved model will be the one that has the best validation score
+    # save_path_ckpt will save model weights after every epoch
+    # save_path_ckpt_full will save the entire training state after every epoch: including model weights, optimizer and scheduler state. 
+    # Such full training state and allow the training to restart after any break without the need to warmup the optimizer
+
     save_path = os.path.join(cfg.save_path, cfg.expname) #cfg.save_path + cfg.expname
     save_path_ckpt = os.path.join(save_path, 'ckpt')
     save_path_ckpt_full = os.path.join(save_path_ckpt, 'ckpt_full')
@@ -166,7 +140,9 @@ def main(cfg: DictConfig) -> float:
         if not os.path.exists(save_path_ckpt_full):
             os.makedirs(save_path_ckpt_full)
 
-
+    # if cfg.restart_path is set, then the model will load the model weight in the restart_path
+    # Note that in this restart method, the optimizer is not warmed up (e.g., for adam optimizer, you typically need some training steps for the adam optimizer to start perform well)
+    # below there is also another restart method by setting cfg.restart_full_ckpt, which will load both model weights and optimizer/scheduler state if you saved such checkpoint
     if len(cfg.restart_path) > 0:
         print("Restarting from checkpoint: " + cfg.restart_path)
         if dist.distributed:
@@ -198,6 +174,8 @@ def main(cfg: DictConfig) -> float:
             )
         torch.cuda.current_stream().wait_stream(ddps)
 
+    # if cfg.restart_full_ckpt is set, then the code below will load the model weights as well as the optimizer/scheduler state
+    # you won't need to set cfg.restart_path if you set the cfg.restart_full_ckpt
     if cfg.restart_full_ckpt:
         print("Restarting from full checkpoint: " + save_path_ckpt_full)
         loaded_epoch = load_checkpoint(
@@ -224,7 +202,6 @@ def main(cfg: DictConfig) -> float:
     
     # Initialize the console logger
     logger = PythonLogger("main")  # General python logger
-
     if cfg.logger == 'wandb':
         # Initialize the MLFlow logger
         initialize_wandb(
@@ -235,12 +212,14 @@ def main(cfg: DictConfig) -> float:
         )
         LaunchLogger.initialize(use_wandb=True)
 
+
+
+    # set how many top checkpoints to track
     if cfg.save_top_ckpts<=0:
         logger.info("Checkpoints should be set >0, setting to 1")
         num_top_ckpts = 1
     else:
         num_top_ckpts = cfg.save_top_ckpts
-
     if cfg.top_ckpt_mode == 'min':
         top_checkpoints = [(float('inf'), None)] * num_top_ckpts
     elif cfg.top_ckpt_mode == 'max':
@@ -248,31 +227,26 @@ def main(cfg: DictConfig) -> float:
     else:
         raise ValueError('Unknown top_ckpt_mode')
     
-    if dist.rank == 0:
-        save_path = os.path.join(cfg.save_path, cfg.expname) #cfg.save_path + cfg.expname
-        save_path_ckpt = os.path.join(save_path, 'ckpt')
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-        if not os.path.exists(save_path_ckpt):
-            os.makedirs(save_path_ckpt)
-    
     if dist.world_size > 1:
         torch.distributed.barrier()
     
-    # the following training_step and eval_step_forward are some optimized version of the training function that can take use of things like Cuda graphs, Jit, mixed precision.
-    @StaticCaptureTraining(
-        model=model,
-        optim=optimizer,
-        # cuda_graph_warmup=13,
-    )
-    def training_step(model, data_input, target):
-        output = model(data_input)
-        loss = criterion(output, target)
-        return loss
+    # # the following training_step and eval_step_forward are some optimized version of the training function that can take use of things like Cuda graphs, Jit, mixed precision.
+    # they are provided by the modulus library. However, there are some issue using them with the swintransformer which I have not debugged successfully. So I commented out their usage here.
+    # there usage can be found in this example: https://docs.nvidia.com/deeplearning/modulus/modulus-core/tutorials/simple_training_example.html#optimized-training-workflow
+
+    # @StaticCaptureTraining(
+    #     model=model,
+    #     optim=optimizer,
+    #     # cuda_graph_warmup=13,
+    # )
+    # def training_step(model, data_input, target):
+    #     output = model(data_input)
+    #     loss = criterion(output, target)
+    #     return loss
     
-    @StaticCaptureEvaluateNoGrad(model=model, use_graphs=False)
-    def eval_step_forward(my_model, invar):
-        return my_model(invar)
+    # @StaticCaptureEvaluateNoGrad(model=model, use_graphs=False)
+    # def eval_step_forward(my_model, invar):
+    #     return my_model(invar)
     
     #training block
     logger.info("Starting Training!")
@@ -289,12 +263,12 @@ def main(cfg: DictConfig) -> float:
             train_loop = tqdm(train_loader, desc=f'Epoch {epoch}')
             current_step = 0
             for iteration, (data_input, target) in enumerate(train_loop):
+                # here I added an early stop option. if you set cfg.early_stop_step>0 (default is -1), then each training epoch will only have cfg.early_stop_step steps. 
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
                 data_input, target = data_input.to(device), target.to(device)
                 data_input = data_input.permute(0, 3, 1, 2)
                 target = target.permute(0, 3, 1, 2)
-
                 optimizer.zero_grad()
                 output = model(data_input)
                 loss = criterion(output, target)
@@ -305,17 +279,15 @@ def main(cfg: DictConfig) -> float:
                 #     if param.grad is None:
                 #         print(name)
 
-                #loss = training_step(model, data_input, target)
-
+                # below is an option to do gradient clipping, which can be useful if you found very large gradient at some steps (e.g., when there is a outlier in data) that can potentially disrupt the training.
                 if cfg.clip_grad:
                     clip_grad_norm_(model.parameters(), max_norm=cfg.clip_grad_norm)
 
-                # total_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in model.parameters() if p.grad is not None]), 2)
                 optimizer.step()
                 if cfg.scheduler_name == 'cosine_warmup':
+                    # here in cosine_warmup scheduler, I wanted to let the learning rate to change every training steps instead of every epoch. Just an arbitrary choice.
                     scheduler.step(epoch + iteration / total_iterations)
 
-                # launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy(), "lr": optimizer.param_groups[0]["lr"], "total_norm": total_norm.item()})
                 launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy(), "lr": optimizer.param_groups[0]["lr"]})
 
                 # Update the progress bar description with the current loss
@@ -327,14 +299,11 @@ def main(cfg: DictConfig) -> float:
             val_loss = 0.0
             num_samples_processed = 0
             val_loop = tqdm(val_loader, desc=f'Epoch {epoch}/1 [Validation]')
-            current_step = 0
             for data_input, target in val_loop:
-                if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
-                    break
                 data_input, target = data_input.to(device), target.to(device)
                 data_input = data_input.permute(0, 3, 1, 2)
                 target = target.permute(0, 3, 1, 2)
-                output = eval_step_forward(model, data_input)
+                output = model(data_input)
                 loss = criterion(output, target)
                 val_loss += loss.item() * data_input.size(0)
                 num_samples_processed += data_input.size(0)
@@ -342,12 +311,10 @@ def main(cfg: DictConfig) -> float:
                 # Calculate and update the current average loss
                 current_val_loss_avg = val_loss / num_samples_processed
                 val_loop.set_postfix(loss=current_val_loss_avg)
-                current_step += 1
-                # del data_input, target, output
-                    
+
             
-            # if dist.rank == 0:
-                #all reduce the loss
+            # for validation, we need to calculate the validation score over the entire validation dataset.
+            # since each gpu only usage a fraction of the validation set, we need to gather the validation score on each gpu and do an average using the all_reduce method below
             if dist.world_size > 1:
                 current_val_loss_avg = torch.tensor(current_val_loss_avg, device=dist.device)
                 torch.distributed.all_reduce(current_val_loss_avg)
@@ -358,6 +325,7 @@ def main(cfg: DictConfig) -> float:
 
                 current_metric = current_val_loss_avg
                 # Save the top checkpoints
+                # this part of the code is a bit arbitrary. I choose to save the top n=cfg.save_top_ckpts checkpoints based on their validation score.
                 if cfg.top_ckpt_mode == 'min':
                     is_better = current_metric < max(top_checkpoints, key=lambda x: x[0])[0]
                 elif cfg.top_ckpt_mode == 'max':
@@ -369,15 +337,14 @@ def main(cfg: DictConfig) -> float:
                         model.module.save(ckpt_path)
                     else:
                         model.save(ckpt_path)
-                    # if dist.rank == 0:
-                    #     model.save(ckpt_path)
+
                     top_checkpoints.append((current_metric, ckpt_path))
-                    # Sort and keep top 5 based on max/min goal at the beginning
+                    # Sort and keep top n=cfg.save_top_ckpts checkpoints
                     if cfg.top_ckpt_mode == 'min':
                         top_checkpoints.sort(key=lambda x: x[0], reverse=False)
                     elif cfg.top_ckpt_mode == 'max':
                         top_checkpoints.sort(key=lambda x: x[0], reverse=True)
-                    # delete the worst checkpoint
+                    # delete the worst checkpoint if the saved checkpoints exceed cfg.save_top_ckpts
                     if len(top_checkpoints) > num_top_ckpts:
                         worst_ckpt = top_checkpoints.pop()
                         print(f"Removing worst checkpoint: {worst_ckpt[1]}")
@@ -385,6 +352,7 @@ def main(cfg: DictConfig) -> float:
                             os.remove(worst_ckpt[1])
                             
             if cfg.scheduler_name == 'plateau':
+                # note that the reduceonplateau learning rate scheduler needs to adjust the learning rate based on if the validation score has not been improved over certain epochs.
                 scheduler.step(current_val_loss_avg)
             elif cfg.scheduler_name == 'cosine_warmup':
                 pass # handled in the optimizer.step() in training loop
@@ -406,29 +374,15 @@ def main(cfg: DictConfig) -> float:
                     )
                 
     if dist.rank == 0:
-        logger.info("Start recovering the model from the top checkpoint to do torchscript conversion")         
+        logger.info("Start recovering the model from the top checkpoint")         
         #recover the model weight to the top checkpoint
         model = modulus.Module.from_checkpoint(top_checkpoints[0][1]).to(device)
 
-        # Save the model
+        # Save the model at save_path
         save_file = os.path.join(save_path, 'model.mdlus')
         model.save(save_file)
-        # convert the model to torchscript
-        swintransformer_modulus.device = "cpu"
-        device = torch.device("cpu")
-        model_inf = modulus.Module.from_checkpoint(save_file).to(device)
-        scripted_model = torch.jit.script(model_inf)
-        scripted_model = scripted_model.eval()
-        save_file_torch = os.path.join(save_path, 'model.pt')
-        scripted_model.save(save_file_torch)
-        # # copy input and output normalizations files
-        # shutil.copy(cfg.input_mean, save_path+'/input_mean.npy')
-        # shutil.copy(cfg.input_std, save_path+'/input_std.npy')
-        # shutil.copy(cfg.target_mean, save_path+'/target_mean.npy')
-        # shutil.copy(cfg.target_std, save_path+'/target_std.npy')
-        
-        logger.info("saved model to: " + save_path)
 
+        logger.info("saved model to: " + save_path)
         logger.info("Training complete!")
 
     return current_val_loss_avg
