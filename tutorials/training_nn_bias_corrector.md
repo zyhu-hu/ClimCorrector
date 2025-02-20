@@ -36,6 +36,8 @@ After that, you will see that the virtual environment `climcorr` is added to the
 
 There are two steps for data preprocessing: 1) aggregate the model output nc files to some .h5 files where each contains arrays of input and output data with dimension of (nsamples, nfeatures) and 2) further preprocess the .h5 file to do input and output normalization as well as adding additional attribute information, as well as reshape the nsamples dimension to (ntime, nlat, nlon).
 
+Note that I have preprocessed training data on NCAR's Derecho cluster. You can also directly jump to the next section about the training a PyTorch model on Derecho. The instructions in this section are to illustrate how to reproduce my preprocessing process.
+
 ### 2.1 Aggregate the model output nc files to .h5 files
 
 The main tool is the `data_utils` class in the ```utils/data_utils.py``` file. The `data_utils` class is used to aggregate many .nc files and selected input/output variables into single .h5 input and target files. A typical usage of the `data_utils` class can be found in the [../utils/data_utils.py](../utils/data_utils.py).
@@ -57,3 +59,6 @@ After aggregating the .nc files to .h5 files, we need to further preprocess the 
 The [../preprocessing/preprocess_climcorr_train_data_v2.py](../preprocessing/preprocess_v2.py) script is used to preprocess the .h5 files. The script will read the precomputed mean/std of the v2 input and output features in the `../preprocessing/normalization/`.  The script will also add additional attribute information to the .h5 files, such as sine and cosine of longitude, time of day, and time of year. The script will also reshape the nsamples dimension to (ntime, nlat, nlon). I have a script [../preprocessing/generate_slurm_scripts_v2.py](../preprocessing/generate_slurm_scripts_v2.py) to generate 40 slurm scripts under `../preprocessing/slurm_v2_preprocessing/` to preprocess the 40-years replay data. We can then submit the all 40 slurm scripts using [../preprocessing/slurm_v2_preprocessing/submit_all.sh](../preprocessing/slurm_v2_preprocessing/submit_all.sh) to the Cannon cluster to preprocess the data. You should also similarly preprocess the validation data.
 
 After this preprocessing step, you will have a training data folder, which has 40 subfolders for each year. Each subfolder contains the preprocessed .h5 files. You will also have another validation data folder, which should have one subfolder that contains the preprocessed validation data (my pytorch training code assumes training/validation data are always under such subfolders. So if you don't have this subfolder, my training code will get an error of cannot find validation data).
+
+## 3. Training a PyTorch model on NCAR Derecho cluster
+
