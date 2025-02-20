@@ -144,6 +144,22 @@ class data_utils:
         self.v2_inputs_attribute = ['attri_lat',
                                     'attri_lon',
                                      'TOD',
+                                     'TOY']  
+
+        self.v3_inputs_standard = ['T',
+                          'Q',
+                          'U',
+                          'V',
+                          'OMEGA',
+                          'PS',
+                          'PHIS',
+                          'TS',
+                          'ICEFRAC',
+                          'LANDFRAC',
+                          ]
+        self.v3_inputs_attribute = ['attri_lat',
+                                    'attri_lon',
+                                     'TOD',
                                      'TOY']       
 
 
@@ -153,6 +169,11 @@ class data_utils:
                            'VDIFF']
         
         self.v2_outputs = ['SDIFF',
+                           'QDIFF',
+                           'UDIFF',
+                           'VDIFF']
+        
+        self.v3_outputs = ['SDIFF',
                            'QDIFF',
                            'UDIFF',
                            'VDIFF']
@@ -207,6 +228,19 @@ class data_utils:
         self.target_vars = self.v2_outputs
         self.ps_index = 182
         self.input_feature_len = 197
+        self.target_feature_len = 104
+
+    def set_to_v3_vars(self):
+        '''
+        This function sets the inputs and outputs to the V3 subset.
+        It also indicates the index of the surface pressure variable.
+        '''
+        self.input_vars_standard = self.v3_inputs_standard
+        self.input_vars_attribute = self.v3_inputs_attribute
+        self.input_vars = self.v3_inputs_standard + self.v3_inputs_attribute
+        self.target_vars = self.v3_outputs
+        self.ps_index = 130
+        self.input_feature_len = 139
         self.target_feature_len = 104
 
     def get_xrdata_input(self, file, file_vars_standard = None, file_vars_attribute = None):
