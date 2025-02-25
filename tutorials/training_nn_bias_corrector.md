@@ -7,7 +7,7 @@ This tutorial demonstrates how to use this repository to train a neural network 
 
 ## 1. Install the Required Packages for Data Preprocessing
 
-Here are the steps to install the python virtual environment on Harvard Cannon cluster. The purpose of this virtual environment is for data preprocessing and data analysis. We'll have a separate training environment for deep learning.
+Here are the steps to install the python virtual environment on Harvard Cannon cluster. The purpose of this virtual environment is for data preprocessing and data analysis. We'll have a separate training environment for deep learning on NCAR's Derecho machine. If you're only interested in training NN, feel free to directly jump to section about training a NN on Derecho.
 
 First, create a new virtual environment using mamba. The following command creates a new virtual environment named `climcorr`. Change the path after --prefix to your desired location. **Please change to your own path**.
 ```
@@ -61,4 +61,81 @@ The [../preprocessing/preprocess_climcorr_train_data_v2.py](../preprocessing/pre
 After this preprocessing step, you will have a training data folder, which has 40 subfolders for each year. Each subfolder contains the preprocessed .h5 files. You will also have another validation data folder, which should have one subfolder that contains the preprocessed validation data (my pytorch training code assumes training/validation data are always under such subfolders. So if you don't have this subfolder, my training code will get an error of cannot find validation data).
 
 ## 3. Training a PyTorch model on NCAR Derecho cluster
+
+### 3.1 A quick start 
+
+To start a quick training of a SwinTransformer bias corrector on Derecho, go to:
+
+```
+cd /glade/campaign/univ/uhar0026/zeyuanhu/tutorial/pbs
+cp swinv3_dim128_depth4_soap_tutorial.pbs your_preferred_casename.pbs
+```
+***Note:*** Please change `your_preferred_casename` to a different name! Then edit the `your_preferred_casename.pbs` to change the `expname` to a different experiment name.
+
+Then submit the job by:
+```
+qsub your_preferred_casename.pbs
+```
+
+You can monitor the job status by 
+
+```
+watch qstat -u $USER
+```
+
+After the job starts, you should see a file under the same directory like `swin_transformer.o7809719`. It will track the training status and/or any errors. I like to use `tail -f swin_transformer.o7809719` to get a quick sense of whether the training starts and whether the loss are properly decreasing (don't forget to change the filename of this log file).
+
+The first time you run it, you need to properly set up your wandb account on Derecho. I recommend checking this [wandb quickstart page](https://docs.wandb.ai/quickstart/) or using chatgpt to help you debug. The training code will update the training status on wandb. For example, the log file contains where the training status are recorded online (see below example). You can go to the wandb website to see the current training status.
+
+```
+zeyuanhu@derecho4:~/campaign/tutorial/pbs> grep "View project at" swin_transformer.o7809719 
+wandb: ⭐️ View project at https://wandb.ai/zeyuan_hu/tutorial
+```
+
+After the training is done, you can find the saved model at `/glade/campaign/univ/uhar0026/zeyuanhu/tutorial/saved_models/`
+
+Below, I will go into the more details of the training.
+
+### 3.2 Diving into the details
+
+#### Setting the container environment
+This training code used a container to set up the training environment. Check NCAR's [container introduction page](https://ncar-hpc-docs.readthedocs.io/en/latest/environment-and-software/user-environment/containers/) for a quick understanding of what container is. All required python packages are installed in the container. 
+
+The pre-built container image is saved at: `/glade/campaign/univ/uhar0026/zeyuanhu/tutorial/apptainer/my_modulus.sif`
+
+To build this container image, I basically follow the first example in [NCAR container workflow](https://ncar-hpc-docs.readthedocs.io/en/latest/environment-and-software/user-environment/containers/examples/). I used this definition file: `/glade/campaign/univ/uhar0026/zeyuanhu/tutorial/apptainer/my_modulus.def`.
+
+#### Hydra and config file
+
+I used [hydra](https://hydra.cc/docs/intro/) to set the namelist/parameters needed by the training code. In the above example code, we use the SwinTransformer_v2 model at `../models/swintransformer_v2/`. 
+
+In that directory, you will see `conf/config.yaml` that set all the default values of namelist variables/parameters. In the `train_swintransformer.py`, you can see how these namelist variables are passed in code like `cfg.train_dataset_path`.
+
+A good thing about using hydra is that you can set some namelist variables through the command line like `python train_swintransformer.py --config-name=config parameter1=1 parameter2=2`. See the `CMD` line in:
+
+```/glade/campaign/univ/uhar0026/zeyuanhu/tutorial/pbs/swinv3_dim128_depth4_soap_tutorial.pbs```
+
+#### Dataloader
+
+To pass the training data to the NN model in pytorch, you need to define Dataset and Dataloader. In the training example above, I used the [../models/swintransformer_v2/climsim_datapip_processed_h5.py](../models/swintransformer_v2/climsim_datapip_processed_h5.py). It will identify all .h5 files at `parent_path/**/` (see code in the file for better understanding). This file assumes that the input and output data are pre-normalized. There are also a version of dataset file that deal with un-normalilzed data like [../models/swintransformer_v2/climsim_datapip_h5.py](../models/swintransformer_v2/climsim_datapip_h5.py). In this file, I add all the data preprocessing part into the Dataset's `__getitem__` method. Usually if you observe that the dataloading are making your training slow, you could consider preprocessing the data first before the training.
+
+#### How to monitor wandb
+
+On wandb, you can quickly check if the training loss on minibatches are decreasing as expected. If you find that the minibatch losses are not decreasing, that is a warning sign of some issue in the training. For example, you learning rate is set too high.
+
+On the performance side, you can check the `System/GPU Memory Alocated (%)` metric and the `System/GPU Utilization (%)` metric. The `GPU Memory Alocated (%)` can give you a quick sense of how much more you can increase the batch size. For example, if the current GPU memory allocated is 22%, while the batch size is 8, it would be safe to increase the batch size to 32 without encountering out-of-memory issue. The `System/GPU Utilization (%)` measures the portion of the time that GPU is used. If this GPU Utilization is too low, it may suggest that some non-GPU portion of your code becomes a bottleneck of the training speed (e.g., the dataloader loads data too slow), and you may consider optimize the training code.
+
+#### How to create a new NN
+
+Let's say we want to try a U-Net instead of swintransformer_v2 to train a bias corrector, below are the steps that I would take to implement it.
+
+First, let's try finding some existing implementation that works on similar input/output structures. For example, this [repository](https://github.com/vitusbenson/neural_transport/tree/main/neural_transport/models) contains some commonly-used architectures for global 3D data input/output. 
+
+I would first copy the entire `../models/swintransformer_v2/` folder and rename as `../models/unet/`. Then I will copy the [unet.py](https://github.com/vitusbenson/neural_transport/blob/main/neural_transport/models/unet.py) from the above mentioned repository into the unet folder. 
+
+Then I will redefine a modulus version of the Unet implementation. You can compare [../models/swintransformer_v2/swintransformer_modulus.py](../models/swintransformer_v2/swintransformer_modulus.py) vs. [../models/swintransformer_v2/swintransformer.py](../models/swintransformer_v2/swintransformer.py) to see what changed. I basically followed the instruction in [modulus quick tutorial](https://docs.nvidia.com/deeplearning/modulus/modulus-core/tutorials/simple_training_example.html). 
+
+Then I will modify the [../models/swintransformer_v2/tran_swintransformer.py](../models/swintransformer_v2/tran_swintransformer.py) to use unet instead of swintransformer. I will also need to add more parameters in the `conf/config.yaml` in the unet folder to add some unet-specific parameters. 
+
+This should be enough to start training a unet model.
 
