@@ -70,7 +70,7 @@ To start a quick training of a SwinTransformer bias corrector on Derecho, go to:
 cd /glade/campaign/univ/uhar0026/zeyuanhu/tutorial/pbs
 cp swinv3_dim128_depth4_soap_tutorial.pbs your_preferred_casename.pbs
 ```
-***Note:*** Please change `your_preferred_casename` to a different name! Then edit the `your_preferred_casename.pbs` to change the `expname` to a different experiment name.
+***Note:*** Please change `your_preferred_casename` to a different name! Then edit the `your_preferred_casename.pbs` to change the `expname` to a different experiment name. You should also clone your own copy of the ClimCorrector repository and change the path to the repository in the `your_preferred_casename.pbs` (otherwise you'll have some issue with wandb).
 
 Then submit the job by:
 ```
