@@ -139,3 +139,67 @@ Then I will modify the [../models/swintransformer_v2/tran_swintransformer.py](..
 
 This should be enough to start training a unet model.
 
+## 4. Post-analysis
+
+Here I illustrate how to do offline evaluation of the trained model on Derecho. I will also show how to convert the torch model into TorchScript, a format that can be used in Fortran-based climate models.
+
+### 4.1 Offline evaluation
+
+First update the `climcorr` virtual environment to include the `modulus` package. You can do this by running the following command:
+
+First activate the virtual environment:
+```
+mamba activate /n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/mamba_env/climcorr
+```
+
+Then install the `modulus` package:
+```
+pip install nvidia-modulus
+```
+
+In case you run into any error (e.g., some packages are not found) when loading modulus in the demo notebook, you could also try to use the below code to install modulus:
+```
+git clone git@github.com:NVIDIA/modulus.git && cd modulus
+pip install --upgrade pip
+pip install .
+```
+
+Now the `climcorr` virtual environment will be able to run the [../notebooks/zonal-r2.ipynb](../notebooks/zonal-r2.ipynb) notebook. This notebook will load the trained model and evaluate the model performance on the validation data. The notebook will plot the zonal R2 score of the model.
+
+### 4.2 Convert the torch model to TorchScript
+
+To convert the torch model to TorchScript, you can use the [../notebooks/swinv3-wrapper.ipynb](../notebooks/swinv3-wrapper.ipynb) script. This script will load the trained model and convert it to TorchScript. The TorchScript model can be used in Fortran-based climate models. These notebooks should be self-explanatory. After you get the .pt Torchscript file, you can transfer it back to Cannon cluster to run hybrid SP-CESM simulations there (see next section below).
+
+## 5. Launch hybrid SP-CESM simulations with NN bias corrector
+
+This tutorial assumes you know Sarah's SP-CESM setup, which I won't repeat here.
+
+For the cam component, checkout my code here: `https://github.com/zyhu-hu/CAM/tree/nn_online`.
+
+Then, add this [change](https://urldefense.proofpoint.com/v2/url?u=https-3A__github.com_zyhu-2Dhu_cime_commit_e501077c6b329eebb794531646cb6cefb85af17c-23diff-2D7d1c7ad06704e931dd396b181bba2e299cdcf1afe1c63e5d77258f05ddcfd676R839&d=DwMGaQ&c=WO-RGvefibhHBZq3fL85hQ&r=iwgEBM7WPx-PlOs7Uu5-hLG2UwuhKY6bHhTcCn7Zjm8&m=bXhNjoPPhveNd0gSJIUyG-FFoqkZlkuTX6gUajqfNQYLEjCc52gEM2LBWwawKW1W&s=xH_J8Qe8oijJOFAhvvfBRXEcPrpkIO2dENSwNb0h2RA&e=) in cime/scripts/Tools/Makefile, which will require the path where pytorch-fortran bindings are installed in the cluster. Here I hardcoded the pytorch-fortran installing path that I used, but there could be better way to do so.
+
+Below is the code I used to build a CESM job:
+
+```
+salloc -n 1 -N 1 --mem=5000 -t 06:00:00 -p test
+source ~/CESM2.1.5_bash.rc 
+cd ~/CESM215/CESM/cime/scripts/
+# need to change casename below
+./create_newcase --case cases/YOUR_CASENAME --compset FSPCAM_HIST --res f19_f19_mg17 --run-unsupported
+cd cases/YOUR_CASENAME
+./xmlchange NTASKS=128
+./xmlchange RUN_STARTDATE=1990-01-01
+./xmlchange STOP_OPTION=nmonths
+./xmlchange STOP_N=120
+./xmlchange RUN_TYPE=branch
+./xmlchange RUN_REFDIR=/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_replay_2iter/rest/1990-01-01-00000
+./xmlchange GET_REFCASE=TRUE
+./xmlchange RUN_REFCASE=spcam_replay_2iter
+./xmlchange RUN_REFTOD=00000
+./xmlchange RUN_REFDATE=1990-01-01
+./case.setup
+cp /n/home00/zeyuanhu/CESM215/CESM/cime/scripts/cases/nn_corrector_branch_1990_fix1/user_nl_cam ./
+# you need to modify the copied user_nl_cam accordingly by changing the path to the torchscript file.
+sed -i 's/jacob/kuang/g' env_workflow.xml
+./case.build
+```
