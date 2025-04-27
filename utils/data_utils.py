@@ -69,6 +69,7 @@ class data_utils:
         self.input_vars = []
         self.input_vars_standard = [] # those having time, lat and lon dimensions
         self.input_vars_attribute = [] # those that do not have all of time, lat and lon dimensions
+        self.input_vars_customize = [] # those that needs to be specially handled
         self.target_vars = []
         self.input_feature_len = None
         self.target_feature_len = None
@@ -157,6 +158,14 @@ class data_utils:
                           'ICEFRAC',
                           'LANDFRAC',
                           ]
+        
+        self.v3_inputs_futuretend = [
+                          'TTEND_FUTURE',
+                          'QTEND_FUTURE',
+                          'UTEND_FUTURE',
+                          'VTEND_FUTURE',
+                          ]
+        
         self.v3_inputs_attribute = ['attri_lat',
                                     'attri_lon',
                                      'TOD',
@@ -185,6 +194,10 @@ class data_utils:
                         'V':self.num_levels,
                         'CLDLIQ':self.num_levels,
                         'CLDICE':self.num_levels,
+                        'TTEND_FUTURE':self.num_levels,
+                        'QTEND_FUTURE':self.num_levels,
+                        'UTEND_FUTURE':self.num_levels,
+                        'VTEND_FUTURE':self.num_levels,
                         'OMEGA':self.num_levels,
                         'PS':1,
                         'SOLIN':1,
@@ -243,7 +256,21 @@ class data_utils:
         self.input_feature_len = 139
         self.target_feature_len = 104
 
-    def get_xrdata_input(self, file, file_vars_standard = None, file_vars_attribute = None):
+    def set_to_v3_futuretend_vars(self):
+        '''
+        This function sets the inputs and outputs to the V3_futuretend subset.
+        It also indicates the index of the surface pressure variable.
+        '''
+        self.input_vars_standard = self.v3_inputs_standard
+        self.input_vars_customize = self.v3_inputs_futuretend
+        self.input_vars_attribute = self.v3_inputs_attribute
+        self.input_vars = self.v3_inputs_futuretend + self.v3_inputs_attribute + self.input_vars_customize
+        self.target_vars = self.v3_outputs
+        self.ps_index = 234
+        self.input_feature_len = 243
+        self.target_feature_len = 104
+
+    def get_xrdata_input(self, file, file_vars_standard = None, file_vars_attribute = None, file_vars_customize = None):
         '''
         This function reads in a file and returns an xarray dataset with the variables specified.
         file_vars must be a list of strings.
@@ -281,6 +308,20 @@ class data_utils:
                     toy_data = np.tile(doy[:, np.newaxis, np.newaxis], (1, ds_final.sizes['lat'], ds_final.sizes['lon']))
                     ds_final['TOY'] = (('time', 'lat', 'lon'), toy_data.astype(np.float32))
 
+        if file_vars_customize is not None:
+            for var in file_vars_customize:
+                if var == 'TTEND_FUTURE':
+                    ds_final['TTEND_FUTURE'] = ds['T'].isel(time=[0, 3])
+                    ds_final['TTEND_FUTURE'][:] = ds['T'].isel(time=[1, 4]).values - ds['T'].isel(time=[0, 3]).values
+                elif var == 'QTEND_FUTURE':
+                    ds_final['QTEND_FUTURE'] = ds['Q'].isel(time=[0, 3])
+                    ds_final['QTEND_FUTURE'][:] = ds['Q'].isel(time=[1, 4]).values - ds['Q'].isel(time=[0, 3]).values
+                elif var == 'UTEND_FUTURE':
+                    ds_final['UTEND_FUTURE'] = ds['U'].isel(time=[0, 3])
+                    ds_final['UTEND_FUTURE'][:] = ds['U'].isel(time=[1, 4]).values - ds['U'].isel(time=[0, 3]).values
+                elif var == 'VTEND_FUTURE':
+                    ds_final['VTEND_FUTURE'] = ds['V'].isel(time=[0, 3])
+                    ds_final['VTEND_FUTURE'][:] = ds['V'].isel(time=[1, 4]).values - ds['V'].isel(time=[0, 3]).values
         return ds_final
     
     def get_xrdata_target(self, file, file_vars_standard = None, retrieve_independent = False):
@@ -327,7 +368,7 @@ class data_utils:
         This function reads in a file and returns an xarray dataset with the input variables for the emulator.
         '''
         # read inputs
-        return self.get_xrdata_input(input_file, self.input_vars_standard, self.input_vars_attribute)
+        return self.get_xrdata_input(input_file, self.input_vars_standard, self.input_vars_attribute, self.input_vars_customize)
 
 
     def get_target(self, input_file):
