@@ -21,14 +21,14 @@ source activate /n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/mamba_env/clim
 python preprocessing/create_h5_data_v3_futuretend_retrieve_independent.py \
     'spcam_2iter1_inst.cam.h1.1980-*.nc' \
     --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_2iter1_inst/atm/hist/' \
-    --save_path '/n/home00/zeyuanhu/scratch/climcorr_preprocessing/v3_futuretend/1980/' \
+    --save_path '/n/holylfs04/labs/kuang_lab/lab/kuanglfs/zeyuanhu/climcorr_preprocessing/v3_futuretend/1980/' \
     --start_idx 0 \
     --stride_sample 1 
 
 python preprocessing/create_h5_data_v3_futuretend_retrieve_independent.py \
     'spcam_2iter1_inst.cam.h1.1981-*.nc' \
     --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_2iter1_inst/atm/hist/' \
-    --save_path '/n/home00/zeyuanhu/scratch/climcorr_preprocessing/v3_futuretend/1981/' \
+    --save_path '/n/holylfs04/labs/kuang_lab/lab/kuanglfs/zeyuanhu/climcorr_preprocessing/v3_futuretend/1981/' \
     --start_idx 0 \
     --stride_sample 1 
 
@@ -36,7 +36,7 @@ python preprocessing/create_h5_data_v3_futuretend_retrieve_independent.py \
 python preprocessing/create_h5_data_v3_futuretend_retrieve_independent.py \
     'spcam_2iter1_inst.cam.h1.1982-*.nc' \
     --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_2iter1_inst/atm/hist/' \
-    --save_path '/n/home00/zeyuanhu/scratch/climcorr_preprocessing/v3_futuretend/1982/' \
+    --save_path '/n/holylfs04/labs/kuang_lab/lab/kuanglfs/zeyuanhu/climcorr_preprocessing/v3_futuretend/1982/' \
     --start_idx 0 \
     --stride_sample 1 
 
@@ -44,7 +44,7 @@ python preprocessing/create_h5_data_v3_futuretend_retrieve_independent.py \
 python preprocessing/create_h5_data_v3_futuretend_retrieve_independent.py \
     'spcam_2iter1_inst.cam.h1.1983-*.nc' \
     --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_2iter1_inst/atm/hist/' \
-    --save_path '/n/home00/zeyuanhu/scratch/climcorr_preprocessing/v3_futuretend/1983/' \
+    --save_path '/n/holylfs04/labs/kuang_lab/lab/kuanglfs/zeyuanhu/climcorr_preprocessing/v3_futuretend/1983/' \
     --start_idx 0 \
     --stride_sample 1 
 
@@ -52,7 +52,7 @@ python preprocessing/create_h5_data_v3_futuretend_retrieve_independent.py \
 python preprocessing/create_h5_data_v3_futuretend_retrieve_independent.py \
     'spcam_2iter1_inst.cam.h1.1984-*.nc' \
     --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_2iter1_inst/atm/hist/' \
-    --save_path '/n/home00/zeyuanhu/scratch/climcorr_preprocessing/v3_futuretend/1984/' \
+    --save_path '/n/holylfs04/labs/kuang_lab/lab/kuanglfs/zeyuanhu/climcorr_preprocessing/v3_futuretend/1984/' \
     --start_idx 0 \
     --stride_sample 1 
 
