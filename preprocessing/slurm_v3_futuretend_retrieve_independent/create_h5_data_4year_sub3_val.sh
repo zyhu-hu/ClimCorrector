@@ -19,8 +19,8 @@ cd /n/home00/zeyuanhu/ClimCorrector
 source activate /n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/mamba_env/climcorr
 
 python preprocessing/create_h5_data_v3_futuretend_retrieve_independent_val.py \
-    'spcam_2iter1_inst4.cam.h1.201[6-9]*.nc' \
-    --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_2iter1_inst/atm/hist/' \
+    'spcam_replay_2iter4.cam.h1.201[6-9]*.nc' \
+    --data_path '/n/home04/sweidman/holylfs04/CESM215_out/Run/archive/spcam_replay_2iter/atm/hist/' \
     --save_path '/n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/climcorr_preprocessing/v3_futuretend_4year_sub3/' \
     --start_idx 0 \
     --stride_sample 3

@@ -5,8 +5,7 @@ def main(regexps, data_path, save_path, start_idx, stride_sample):
     data = data_utils(normalize=False,
                   save_h5=True,
                   save_npy=False,
-                  retrieve_independent=True,
-                  corrector_filename='spcam_replay_not0'
+                  retrieve_independent=True
                   )
     # set the path to model outputs
     data.data_path = data_path
