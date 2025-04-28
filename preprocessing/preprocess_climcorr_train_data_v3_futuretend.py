@@ -44,7 +44,7 @@ def preprocess_climcorr_train_data(year):
     toy_cos = np.cos(toy/365.*2*np.pi)
     toy_sin = np.sin(toy/365.*2*np.pi)
 
-    x = np.concatenate((x[:,:-4], np.array([lat_norm, lon_cos, lon_sin, tod_cos, tod_sin, toy_cos, toy_sin]).T), axis=1)
+    x = np.concatenate((x[:,:139-4], np.array([lat_norm, lon_cos, lon_sin, tod_cos, tod_sin, toy_cos, toy_sin]).T, x[:,139:]), axis=1)
     cutoff = 100
     # soft-clip the target variables
     y_dc = np.where(y_dc > cutoff, y_dc**0.5 - cutoff**0.5 + cutoff, y_dc)
