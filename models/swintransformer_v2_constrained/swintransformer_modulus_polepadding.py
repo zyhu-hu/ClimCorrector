@@ -811,6 +811,13 @@ class SwinTransformerV2CrModulus_polepadding(modulus.Module):
         # super(SwinTransformerV2Cr, self).__init__()
         super().__init__(meta=SwinTransformerV2CrModulusMetaData())
         img_size = to_2tuple(img_size)
+        self.pole_padding = pole_padding
+        self.pole_padding_value = pole_padding_value
+        self.pole_tqmean = pole_tqmean
+        
+        if self.pole_padding:
+            img_size = (img_size[0]+2*self.pole_padding_value, img_size[1])
+
         window_size = (
             tuple([s // img_window_ratio for s in img_size])
             if window_size is None
@@ -827,12 +834,7 @@ class SwinTransformerV2CrModulus_polepadding(modulus.Module):
         self.checkpoint_stages = checkpoint_stages
         self.residual = residual
         self.depth = len(depths)
-        self.pole_padding = pole_padding
-        self.pole_padding_value = pole_padding_value
-        self.pole_tqmean = pole_tqmean
 
-        if self.pole_padding:
-            img_size = (img_size[0]+2*self.pole_padding_value, img_size[1])
 
         self.patch_embed = PatchEmbed(
             img_size=img_size,
