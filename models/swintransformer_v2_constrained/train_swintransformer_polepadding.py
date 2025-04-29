@@ -16,8 +16,8 @@ from modulus.launch.logging import (
 from utils.data_utils import *
 from climsim_datapip_processed_h5 import climsim_dataset_processed_h5
 
-from models.swintransformer_v2_constrained.swintransformer_modulus_polepadding import SwinTransformerV2CrModulus_polepadding 
-import models.swintransformer_v2_constrained.swintransformer_modulus_polepadding as swintransformer_modulus_polepadding
+from swintransformer_modulus_polepadding import SwinTransformerV2CrModulus_polepadding 
+import swintransformer_modulus_polepadding as swintransformer_modulus_polepadding
 
 import hydra
 from torch.nn.parallel import DistributedDataParallel
