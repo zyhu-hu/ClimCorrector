@@ -930,7 +930,7 @@ class SwinTransformerV2CrModulus_polepadding(modulus.Module):
             # For South pole padding (reflecting bottom rows)
             south_data = x[:, :, -self.pole_padding_value:, :]
             # Flip latitudes and rotate longitudes by 180 degrees
-            south_padded = torch.flip(south_padded, dims=[2])  # Flip latitude only (dim 2)
+            south_padded = torch.flip(south_data, dims=[2])  # Flip latitude only (dim 2)
             south_padded = torch.roll(south_padded, shifts=south_padded.shape[3]//2, dims=3)  # Rotate longitude by 180°
             
             # Concatenate padded data with original
