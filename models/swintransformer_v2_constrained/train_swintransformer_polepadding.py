@@ -185,12 +185,14 @@ def main(cfg: DictConfig) -> float:
             save_path_ckpt_full,
             models=model,
             optimizer=optimizer,
-            scheduler=scheduler,
+            scheduler=None if cfg.restart_full_ckpt_reset_lrscheduler else scheduler,
             device="cuda",
         )
         if cfg.restart_full_ckpt_reset_lrscheduler:
             loaded_epoch = 0
-            # reset scheduler
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = cfg.learning_rate  # Set your desired new LR here
+            # create scheduler
             if cfg.scheduler_name == 'step':
                 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
             elif cfg.scheduler_name == 'plateau':
@@ -201,7 +203,6 @@ def main(cfg: DictConfig) -> float:
                 scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=cfg.scheduler.cosine_warmup.T_0, T_mult=cfg.scheduler.cosine_warmup.T_mult, eta_min=cfg.scheduler.cosine_warmup.eta_min)
             else:
                 raise ValueError('Scheduler not implemented')
-
 
     else:
         loaded_epoch = 0
