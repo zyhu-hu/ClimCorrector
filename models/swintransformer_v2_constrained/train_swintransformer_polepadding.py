@@ -188,6 +188,8 @@ def main(cfg: DictConfig) -> float:
             scheduler=None if cfg.restart_full_ckpt_reset_lrscheduler else scheduler,
             device="cuda",
         )
+        if cfg.restart_full_ckpt_reset_lrscheduler:
+            loaded_epoch = 0
     else:
         loaded_epoch = 0
 
