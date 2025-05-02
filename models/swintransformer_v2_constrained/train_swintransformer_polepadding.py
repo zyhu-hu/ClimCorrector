@@ -185,7 +185,7 @@ def main(cfg: DictConfig) -> float:
             save_path_ckpt_full,
             models=model,
             optimizer=optimizer,
-            scheduler=scheduler,
+            scheduler=None if cfg.restart_full_ckpt_reset_lrscheduler else scheduler,
             device="cuda",
         )
     else:
