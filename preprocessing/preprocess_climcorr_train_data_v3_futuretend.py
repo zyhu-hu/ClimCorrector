@@ -11,7 +11,7 @@ def preprocess_climcorr_train_data(year):
     """
     parent_path = f'/n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/climcorr_preprocessing/v3_futuretend/{year}/'
     input_mean = np.load('/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/inputs/input_mean_v3_futuretend_40year_sub23.npy')
-    input_std = np.load('/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/inputs/input_mean_v3_futuretend_40year_sub23.npy')
+    input_std = np.load('/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/inputs/input_std_v3_futuretend_40year_sub23.npy')
     # for the target variables, we use the same mean and std as previous version
     target_mean_dc = np.load('/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/outputs/target_dc_mean_v2_iter2_40year_sub23.npy')
     target_std_dc = np.load('/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/outputs/target_dc_std_v2_iter2_40year_sub23.npy')
