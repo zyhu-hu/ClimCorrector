@@ -3,7 +3,7 @@
 Author: Zeyuan Hu
 02/19/2025
 
-This tutorial demonstrates how to use this repository to train a neural network to correct bias in the Superparameterized Community Atmosphere Model (SPCAM).
+This tutorial demonstrates how to use this repository to train a neural network to correct bias in the Superparameterized Community Atmosphere Model (SPCAM). When cloning this repository, please make sure to checkout the `tutorial` branch.
 
 ## 1. Install the Required Packages for Data Preprocessing
 
@@ -19,7 +19,7 @@ Next, activate the virtual environment.
 mamba activate /n/holylfs04/LABS/kuang_lab/Lab/kuanglfs/zeyuanhu/mamba_env/climcorr
 ```
 
-Then, install the required packages. Run the following command from the root of this repo to install the required packages.
+Then, install the required packages. Run the following command from the root of this ClimCorrector repo to install the required packages.
 
 ```
 pip install .
@@ -50,13 +50,13 @@ The [../preprocessing/create_h5_data_v2_retrieve_independent.py](../preprocessin
 
 The [../preprocessing/slurm_v2_test_retrieve_independent/create_h5_data_4years_sub3_val.sh](../preprocessing/slurm_v2_test_retrieve_independent/create_h5_data_4years_sub3_val.sh) will aggregate the last 4 years of the replay data as the validation data. I subsampled the files by a factor of 3 so that the evaluation during each training epoch can be faster. The validation data will be used to evaluate the model performance during training. During the training, I will also exclude the last 4 years from the training set since it is used as the validation set.
 
-I also have [../preprocessing/slurm_v2_test_retrieve_independent/create_h5_data_40years_sub23.sh](../preprocessing/slurm_v2_test_retrieve_independent/create_h5_data_40years_sub23.sh) to aggregate the entire 40-years replay data. I used this aggregated data to calculate the mean/std of the input and output features. The mean/std will be used to normalize the input and output features during training.
+I also have [../preprocessing/slurm_v2_test_retrieve_independent/create_h5_data_40years_sub23.sh](../preprocessing/slurm_v2_test_retrieve_independent/create_h5_data_40years_sub23.sh) to aggregate the entire 40-years replay data. I used this aggregated data to calculate the mean/std of the input and output features. The mean/std will be used to normalize the input and output features during training. You can then follow the notebook [../notebooks/calculate_normalization_factors.ipynb](../notebooks/calculate_normalization_factors.ipynb) to calculate the mean/std of the input and output features. The notebook will save the mean/std in the `../preprocessing/normalization/` folder.
 
 ### 2.2 Further preprocess the .h5 file
 
-After aggregating the .nc files to .h5 files, we need to further preprocess the .h5 files to do input and output normalization as well as adding additional attribute information, as well as reshape the nsamples dimension to (ntime, nlat, nlon). This step can potentially be done in your pytorch dataloader if you want to do it on-the-fly. However, doing this preprocessing in advance can save some time during training. 
+After aggregating the .nc files to .h5 files, we need to further preprocess the .h5 files to do input and output normalization as well as adding additional attribute information, as well as reshape the nsamples dimension to (ntime, nlat, nlon). This step can potentially be done in your pytorch dataloader if you want to do it on-the-fly. However, doing this preprocessing in advance can save some time during training. This step requires that you have the saved mean/std files of the input and output features (see the last pragraph in the previous section).
 
-The [../preprocessing/preprocess_climcorr_train_data_v2.py](../preprocessing/preprocess_v2.py) script is used to preprocess the .h5 files. The script will read the precomputed mean/std of the v2 input and output features in the `../preprocessing/normalization/`.  The script will also add additional attribute information to the .h5 files, such as sine and cosine of longitude, time of day, and time of year. The script will also reshape the nsamples dimension to (ntime, nlat, nlon). I have a script [../preprocessing/generate_slurm_scripts_v2.py](../preprocessing/generate_slurm_scripts_v2.py) to generate 40 slurm scripts under `../preprocessing/slurm_v2_preprocessing/` to preprocess the 40-years replay data. We can then submit the all 40 slurm scripts using [../preprocessing/slurm_v2_preprocessing/submit_all.sh](../preprocessing/slurm_v2_preprocessing/submit_all.sh) to the Cannon cluster to preprocess the data. You should also similarly preprocess the validation data.
+The [../preprocessing/preprocess_climcorr_train_data_v2.py](../preprocessing/preprocess_v2.py) script is used to preprocess the .h5 files. The script will read the precomputed mean/std of the v2 input and output features in the `../preprocessing/normalization/`.  The script will also add additional attribute information to the .h5 files, such as sine and cosine of longitude, time of day, and time of year. The script will also reshape the nsamples dimension to (ntime, nlat, nlon). I have a script [../preprocessing/generate_slurm_scripts_v2.py](../preprocessing/generate_slurm_scripts_v2.py) to generate 40 slurm scripts under `../preprocessing/slurm_v2_preprocessing/` to preprocess the 40-years replay data. We can then submit the all 40 slurm scripts using [../preprocessing/slurm_v2_preprocessing/submit_all.sh](../preprocessing/slurm_v2_preprocessing/submit_all.sh) to the Cannon cluster to preprocess the data (You need to get out of the climcorr virtual environment before running these preprocess_{year}.sh jobs). You should also similarly preprocess the validation data.
 
 After this preprocessing step, you will have a training data folder, which has 40 subfolders for each year. Each subfolder contains the preprocessed .h5 files. You will also have another validation data folder, which should have one subfolder that contains the preprocessed validation data (my pytorch training code assumes training/validation data are always under such subfolders. So if you don't have this subfolder, my training code will get an error of cannot find validation data).
 
@@ -85,7 +85,9 @@ watch qstat -u $USER
 
 After the job starts, you should see a file under the same directory like `swin_transformer.o7809719`. It will track the training status and/or any errors. I like to use `tail -f swin_transformer.o7809719` to get a quick sense of whether the training starts and whether the loss are properly decreasing (don't forget to change the filename of this log file).
 
-The first time you run it, you need to properly set up your wandb account on Derecho. I recommend checking this [wandb quickstart page](https://docs.wandb.ai/quickstart/) or using chatgpt to help you debug. The training code will update the training status on wandb. For example, the log file contains where the training status are recorded online (see below example). You can go to the wandb website to see the current training status.
+The first time you run it, you need to properly set up your wandb account on Derecho. I recommend checking this [wandb quickstart page](https://docs.wandb.ai/quickstart/) or using chatgpt to help you debug. You likely need to add wandb api key in .bashrc file. You also need to change 'entity="zeyuan_hu"' to your own wandb user name in the train_swin...py file. 
+
+The training code will update the training status on wandb. For example, the log file contains where the training status are recorded online (see below example). You can go to the wandb website to see the current training status.
 
 ```
 zeyuanhu@derecho4:~/campaign/tutorial/pbs> grep "View project at" swin_transformer.o7809719 
@@ -164,7 +166,7 @@ pip install --upgrade pip
 pip install .
 ```
 
-Now the `climcorr` virtual environment will be able to run the [../notebooks/zonal-r2.ipynb](../notebooks/zonal-r2.ipynb) notebook. This notebook will load the trained model and evaluate the model performance on the validation data. The notebook will plot the zonal R2 score of the model.
+Now the `climcorr` virtual environment will be able to run the [../notebooks/zonal-r2.ipynb](../notebooks/zonal-r2.ipynb) notebook. This notebook will load the trained model and evaluate the model performance on the validation data. The notebook will plot the zonal R2 score of the model. Running this notebook will require requesting GPU resources. I usually go to `https://jupyterhub.hpc.ucar.edu` to open a jupyter notebook. For these post-analysis, I recommend just select casper PBS batch, then select 1 cpu, 1 gpu, and 128 GM memory. 
 
 ### 4.2 Convert the torch model to TorchScript
 
