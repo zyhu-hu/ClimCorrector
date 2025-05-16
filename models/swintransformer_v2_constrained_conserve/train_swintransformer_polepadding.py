@@ -80,6 +80,15 @@ def main(cfg: DictConfig) -> float:
                                 drop_last=True,
                                 pin_memory=torch.cuda.is_available(),
                                 num_workers=cfg.num_workers)
+    
+    input_mean = np.load(cfg.input_mean)
+    input_std = np.load(cfg.input_std)
+    target_mean = np.load(cfg.target_mean)
+    target_std = np.load(cfg.target_std)
+    ds_grid = xr.open_dataset(cfg.climcorr_path+'utils/grid_info.nc')
+    hyai = ds_grid.hyai.values
+    hybi = ds_grid.hybi.values
+    gw = ds_grid.gw.values
 
     # create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -102,6 +111,16 @@ def main(cfg: DictConfig) -> float:
         pole_padding = cfg.swin.pole_padding,
         pole_padding_value = cfg.swin.pole_padding_value,
         pole_tqmean = cfg.swin.pole_tqmean,
+        conserve_water = True,
+        conserve_heat = True,
+        input_mean = input_mean,
+        input_std = input_std,
+        target_mean = target_mean,
+        target_std = target_std,
+        hyai = hyai,
+        hybi = hybi,
+        gw = gw,
+        pressure_index = 130,
     ).to(dist.device)
 
     # create optimizer
@@ -151,14 +170,14 @@ def main(cfg: DictConfig) -> float:
         if dist.distributed:
             model_restart = modulus.Module.from_checkpoint(cfg.restart_path).to(dist.device)
             if dist.rank == 0:
-                model.load_state_dict(model_restart.state_dict())
+                model.load_state_dict(model_restart.state_dict(), strict=False)
                 torch.distributed.barrier()
             else:
                 torch.distributed.barrier()
-                model.load_state_dict(model_restart.state_dict())
+                model.load_state_dict(model_restart.state_dict(), strict=False)
         else:
             model_restart = modulus.Module.from_checkpoint(cfg.restart_path).to(dist.device)
-            model.load_state_dict(model_restart.state_dict())
+            model.load_state_dict(model_restart.state_dict(), strict=False)
 
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to
