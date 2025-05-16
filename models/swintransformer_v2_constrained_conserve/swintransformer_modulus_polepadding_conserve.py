@@ -846,13 +846,13 @@ class SwinTransformerV2CrModulus_polepadding_conserve(modulus.Module):
         self.depth = len(depths)
         self.conserve_water = conserve_water
         self.conserve_heat = conserve_heat
-        self.input_mean = torch.tensor(input_mean, dtype=torch.float32)
-        self.input_std = torch.tensor(input_std, dtype=torch.float32)
-        self.target_mean = torch.tensor(target_mean, dtype=torch.float32)
-        self.target_std = torch.tensor(target_std, dtype=torch.float32)
-        self.hyai = torch.tensor(hyai, dtype=torch.float32)
-        self.hybi = torch.tensor(hybi, dtype=torch.float32)
-        self.gw = torch.tensor(gw, dtype=torch.float32)
+        self.register_buffer("input_mean", torch.tensor(input_mean, dtype=torch.float32))
+        self.register_buffer("input_std", torch.tensor(input_std, dtype=torch.float32))
+        self.register_buffer("target_mean", torch.tensor(target_mean, dtype=torch.float32))
+        self.register_buffer("target_std", torch.tensor(target_std, dtype=torch.float32))
+        self.register_buffer("hyai", torch.tensor(hyai, dtype=torch.float32))
+        self.register_buffer("hybi", torch.tensor(hybi, dtype=torch.float32))
+        self.register_buffer("gw", torch.tensor(gw, dtype=torch.float32))
         self.pressure_index = pressure_index
 
 
