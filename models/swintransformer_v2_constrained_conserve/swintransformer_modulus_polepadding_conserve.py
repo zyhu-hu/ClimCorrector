@@ -939,7 +939,7 @@ class SwinTransformerV2CrModulus_polepadding_conserve(modulus.Module):
 
         # x is in shape (B, C, H, W) where H is latitude and W is longitude
         # retrieve PS first (B, 1, H, W)
-        ps = x[:,self.pressure_index,:,:].unsqeeze(1)*self.input_std[self.pressure_index] + self.input_mean[self.pressure_index]
+        ps = x[:,self.pressure_index,:,:].unsqueeze(1)*self.input_std[self.pressure_index] + self.input_mean[self.pressure_index]
 
         if self.residual:
             skip = x
