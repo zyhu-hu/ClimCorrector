@@ -2,10 +2,10 @@
 climcorr_path: '/n/home00/zeyuanhu/ClimCorrector/'
 train_dataset_path: '/n/holyscratch01/kuang_lab/zeyuanhu/scratch/climcorr_preprocessing/v1_test1/'
 val_dataset_path: '/n/holyscratch01/kuang_lab/zeyuanhu/scratch/climcorr_preprocessing/v1_test1/'
-input_mean: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/inputs/input_mean_v1_test1_10year_sub7.npy'
-input_std: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/inputs/input_std_v1_test1_10year_sub7.npy'
-target_mean: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/outputs/target_mean_v1_test1_10year_sub7.npy'
-target_std: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/outputs/target_std_v1_test1_10year_sub7.npy'
+input_mean: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/inputs/input_mean_v3_futuretend_40year_sub23.npy'
+input_std: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/inputs/input_std_v3_futuretend_40year_sub23.npy'
+target_mean: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/outputs/target_dc_mean_v2_iter2_40year_sub23.npy'
+target_std: '/n/home00/zeyuanhu/ClimCorrector/preprocessing/normalization/outputs/target_dc_std_v2_iter2_40year_sub23.npy'
 restart_path: ''
 restart_full_ckpt: False
 restart_full_ckpt_reset_lrscheduler: False
