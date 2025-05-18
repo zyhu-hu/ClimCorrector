@@ -38,6 +38,8 @@ from torch.utils.checkpoint import checkpoint
 import modulus
 import nvtx
 from dataclasses import dataclass
+import numpy as np
+import xarray as xr
 
 @dataclass
 class SwinTransformerV2CrModulusMetaData(modulus.ModelMetaData):
@@ -812,9 +814,7 @@ class SwinTransformerV2CrModulus_polepadding_conserve(modulus.Module):
         input_std = None,
         target_mean = None,
         target_std = None,
-        hyai = None,
-        hybi = None,
-        gw = None,
+        grid_info = None,
         pressure_index: int = 130,
         **kwargs: Any,
     ) -> None:
@@ -846,10 +846,30 @@ class SwinTransformerV2CrModulus_polepadding_conserve(modulus.Module):
         self.depth = len(depths)
         self.conserve_water = conserve_water
         self.conserve_heat = conserve_heat
-        self.register_buffer("input_mean", input_mean)
-        self.register_buffer("input_std", input_std)
-        self.register_buffer("target_mean", target_mean)
-        self.register_buffer("target_std", target_std)
+
+        def _load_maybe(fname):
+            if fname is None:
+                return None
+            arr = np.load(fname)            # or xr.open_dataarray, h5py, …
+            return torch.as_tensor(arr, dtype=torch.float32)
+        
+        def _load_grid_info(fname):
+            if fname is None:
+                return None, None, None
+            ds_grid = xr.open_dataset(fname)
+            hyai = ds_grid.hyai.values
+            hybi = ds_grid.hybi.values
+            gw = ds_grid.gw.values
+            hyai = torch.tensor(hyai, dtype=torch.float32)
+            hybi = torch.tensor(hybi, dtype=torch.float32)
+            gw = torch.tensor(gw, dtype=torch.float32)
+            return hyai, hybi, gw
+        
+        self.register_buffer("input_mean", _load_maybe(input_mean))
+        self.register_buffer("input_std", _load_maybe(input_std))
+        self.register_buffer("target_mean", _load_maybe(target_mean))
+        self.register_buffer("target_std", _load_maybe(target_std))
+        hyai, hybi, gw = _load_grid_info(grid_info)
         self.register_buffer("hyai", hyai)
         self.register_buffer("hybi", hybi)
         self.register_buffer("gw", gw)

@@ -84,14 +84,14 @@ def main(cfg: DictConfig) -> float:
                                 pin_memory=torch.cuda.is_available(),
                                 num_workers=cfg.num_workers)
     
-    input_mean = np.load(cfg.input_mean)
-    input_std = np.load(cfg.input_std)
-    target_mean = np.load(cfg.target_mean)
-    target_std = np.load(cfg.target_std)
-    ds_grid = xr.open_dataset(cfg.climcorr_path+'utils/grid_info.nc')
-    hyai = ds_grid.hyai.values
-    hybi = ds_grid.hybi.values
-    gw = ds_grid.gw.values
+    # input_mean = np.load(cfg.input_mean)
+    # input_std = np.load(cfg.input_std)
+    # target_mean = np.load(cfg.target_mean)
+    # target_std = np.load(cfg.target_std)
+    # ds_grid = xr.open_dataset(cfg.climcorr_path+'utils/grid_info.nc')
+    # hyai = ds_grid.hyai.values
+    # hybi = ds_grid.hybi.values
+    # gw = ds_grid.gw.values
 
     # create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -116,13 +116,11 @@ def main(cfg: DictConfig) -> float:
         pole_tqmean = cfg.swin.pole_tqmean,
         conserve_water = True,
         conserve_heat = True,
-        input_mean = torch.tensor(input_mean, dtype=torch.float32),
-        input_std = torch.tensor(input_std, dtype=torch.float32),
-        target_mean = torch.tensor(target_mean, dtype=torch.float32),
-        target_std = torch.tensor(target_std, dtype=torch.float32),
-        hyai = torch.tensor(hyai, dtype=torch.float32),
-        hybi = torch.tensor(hybi, dtype=torch.float32),
-        gw = torch.tensor(gw, dtype=torch.float32),
+        input_mean = cfg.input_mean,
+        input_std = cfg.input_std,
+        target_mean = cfg.target_mean,
+        target_std = cfg.target_std,
+        grid_info = cfg.climcorr_path+'utils/grid_info.nc',
         pressure_index = 130,
     ).to(dist.device)
 
