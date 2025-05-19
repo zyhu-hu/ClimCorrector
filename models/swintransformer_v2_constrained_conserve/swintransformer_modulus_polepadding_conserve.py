@@ -816,6 +816,8 @@ class SwinTransformerV2CrModulus_polepadding_conserve(modulus.Module):
         target_std = None,
         grid_info = None,
         pressure_index: int = 130,
+        sdiff_std_file = None,
+        qdiff_std_file = None,
         **kwargs: Any,
     ) -> None:
         # super(SwinTransformerV2Cr, self).__init__()
@@ -874,6 +876,8 @@ class SwinTransformerV2CrModulus_polepadding_conserve(modulus.Module):
         self.register_buffer("hybi", hybi)
         self.register_buffer("gw", gw)
         self.pressure_index = pressure_index
+        self.register_buffer("sdiff_std", _load_maybe(sdiff_std_file)) # of shape (26,96)
+        self.register_buffer("qdiff_std", _load_maybe(qdiff_std_file)) # of shape (26,96)
 
 
         self.patch_embed = PatchEmbed(
@@ -1006,20 +1010,28 @@ class SwinTransformerV2CrModulus_polepadding_conserve(modulus.Module):
             dp = pi[:, 1:, :, :] - pi[:, :-1, :, :] # dimension is (B, 26, H, W)
             weight = dp * self.gw.view(1,1,-1,1) # dimension is (B, 26, H, W)
             weight = weight / weight.sum(dim=(1,2,3), keepdim=True) # dimension is (B, 26, H, W)
-            weight_square_sum = (weight * weight).sum(dim=(1,2,3), keepdim=True) # dimension is (B, 1, 1, 1)
+            # weight_square_sum = (weight * weight).sum(dim=(1,2,3), keepdim=True) # dimension is (B, 1, 1, 1)
 
             if self.conserve_heat:
                 x_t = x[:, 0:26, :, :] * self.target_std[0:26].view(1,-1,1,1) + self.target_mean[0:26].view(1,-1,1,1)
                 # get the weighted mean t
                 x_t_mean = (x_t*weight).sum(dim=(1,2,3), keepdim=True)
-                x_t_new = x_t - x_t_mean * weight / weight_square_sum
+                # x_t_new = x_t - x_t_mean * weight / weight_square_sum
+                # x[:, 0:26, :, :] = (x_t_new - self.target_mean[0:26].view(1,-1,1,1)) / self.target_std[0:26].view(1,-1,1,1)
+                sigma_t = self.sdiff_std.unsqueeze(0).unsqueeze(3)
+                sigma_w_sum = (self.sdiff_std * weight).sum(dim=(1,2,3), keepdim=True)
+                x_t_new = x_t - x_t_mean * sigma_t / sigma_w_sum
                 x[:, 0:26, :, :] = (x_t_new - self.target_mean[0:26].view(1,-1,1,1)) / self.target_std[0:26].view(1,-1,1,1)
             
             if self.conserve_water:
                 x_q = x[:, 26:52, :, :] * self.target_std[26:52].view(1,-1,1,1) + self.target_mean[26:52].view(1,-1,1,1)
                 # get the weighted mean q
                 x_q_mean = (x_q*weight).sum(dim=(1,2,3), keepdim=True)
-                x_q_new = x_q - x_q_mean * weight / weight_square_sum
+                # x_q_new = x_q - x_q_mean * weight / weight_square_sum
+                # x[:, 26:52, :, :] = (x_q_new - self.target_mean[26:52].view(1,-1,1,1)) / self.target_std[26:52].view(1,-1,1,1)
+                sigma_q = self.qdiff_std.unsqueeze(0).unsqueeze(3)
+                sigma_w_sum = (self.qdiff_std * weight).sum(dim=(1,2,3), keepdim=True)
+                x_q_new = x_q - x_q_mean * sigma_q / sigma_w_sum
                 x[:, 26:52, :, :] = (x_q_new - self.target_mean[26:52].view(1,-1,1,1)) / self.target_std[26:52].view(1,-1,1,1)
                 
         return x

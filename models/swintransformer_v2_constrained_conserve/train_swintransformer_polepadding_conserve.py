@@ -122,6 +122,8 @@ def main(cfg: DictConfig) -> float:
         target_std = cfg.target_std,
         grid_info = cfg.climcorr_path+'utils/grid_info.nc',
         pressure_index = 130,
+        sdiff_std_file = cfg.climcorr_path+'preprocessing/normalization/outputs/SDIFF_std_zonalmean_v3_futuretend_40year_sub23.npy',
+        qdiff_std_file = cfg.climcorr_path+'preprocessing/normalization/outputs/QDIFF_std_zonalmean_v3_futuretend_40year_sub23.npy',
     ).to(dist.device)
 
     # create optimizer
