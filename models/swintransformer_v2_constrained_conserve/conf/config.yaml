@@ -95,3 +95,5 @@ swin:
    pole_padding: True
    pole_padding_value: 6
    pole_tqmean: True
+   conserve_water: True
+   conserve_heat: True
