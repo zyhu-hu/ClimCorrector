@@ -1019,8 +1019,8 @@ class SwinTransformerV2CrModulus_polepadding_conserve(modulus.Module):
                 # x_t_new = x_t - x_t_mean * weight / weight_square_sum
                 # x[:, 0:26, :, :] = (x_t_new - self.target_mean[0:26].view(1,-1,1,1)) / self.target_std[0:26].view(1,-1,1,1)
                 sigma_t = self.sdiff_std.unsqueeze(0).unsqueeze(3)
-                sigma_w_sum = (self.sdiff_std * weight).sum(dim=(1,2,3), keepdim=True)
-                x_t_new = x_t - x_t_mean * sigma_t / sigma_w_sum
+                sigmat_w_sum = (sigma_t * weight).sum(dim=(1,2,3), keepdim=True)
+                x_t_new = x_t - x_t_mean * sigma_t / sigmat_w_sum
                 x[:, 0:26, :, :] = (x_t_new - self.target_mean[0:26].view(1,-1,1,1)) / self.target_std[0:26].view(1,-1,1,1)
             
             if self.conserve_water:
@@ -1030,8 +1030,8 @@ class SwinTransformerV2CrModulus_polepadding_conserve(modulus.Module):
                 # x_q_new = x_q - x_q_mean * weight / weight_square_sum
                 # x[:, 26:52, :, :] = (x_q_new - self.target_mean[26:52].view(1,-1,1,1)) / self.target_std[26:52].view(1,-1,1,1)
                 sigma_q = self.qdiff_std.unsqueeze(0).unsqueeze(3)
-                sigma_w_sum = (self.qdiff_std * weight).sum(dim=(1,2,3), keepdim=True)
-                x_q_new = x_q - x_q_mean * sigma_q / sigma_w_sum
+                sigmaq_w_sum = (sigma_q * weight).sum(dim=(1,2,3), keepdim=True)
+                x_q_new = x_q - x_q_mean * sigma_q / sigmaq_w_sum
                 x[:, 26:52, :, :] = (x_q_new - self.target_mean[26:52].view(1,-1,1,1)) / self.target_std[26:52].view(1,-1,1,1)
                 
         return x
